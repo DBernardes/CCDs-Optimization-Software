@@ -155,41 +155,26 @@ class Optimize_Operation_Mode:
         #Seeks for the largest allowd sub-image option    
         OSNR.find_sub_img_best_mode()        
         #Prints the best mode
-        OSNR.print_best_mode()
-        
+        OSNR.print_best_mode()        
         if 's' in self.export_arq:
-           OSNR.export_optimal_setup(self.img_dir, self.file_base_name, self.star_radius, self.obj_coords)
+           OSNR.export_optimal_setup(self.img_dir, self.file_base_name, self.star_radius, self.obj_coords) 
 
-        
   
-##        if 's' in self.export_loss:            
-##            OSNR.creat_log_parameters(self.img_directory, self.file_base_name)        
-##        if 's' in self.export_bias:
-##           OSNR.create_bias_list(self.img_directory, self.file_base_name)
-
-
 
     def Optimize_FA(self):
         repeat = True
         fa_target = self.acq_rate
-        while repeat == True:  
-            # Inicializa o objeto para a determinacao da frequencia de aquisicao ótima
+        while repeat == True:
+            #Starts the object for the determination of the mode with the optimum acquisition rate            
             OAR =  oar.OptimizeAcquisitionRate(acquisition_rate = self.acq_rate,
                                                sub_img_modes=self.sub_img_modes,
-                                               binn_modes=self.binn_modes)
-            
-            #Determina quais modos se encaixam nos parametros passados (bin e sub-img)
+                                               binn_modes=self.binn_modes)            
+            #Determines which modes meet the provided bin and sub-images options            
             OAR.determine_operation_modes()
-            #Retorna um objeto contendo os modos de operacao selecionados
-            obj_lista_modos_FA = OAR.read_MOB_obj()
-            #Cria a lista de modos à partir do objeto MOB        
-            #OAR.print_MOB_list(),exit()
-
-                   
-            #----------------------------------------------------------------------------
-            #Faço essa inverção porque preciso o texp máximo de cada modo que atinge a FA
-            #mínima. Com base nisso, calculo o valor do ganho EM máximo correspondente.                     
-            #cria o objeto da classe que encontra os modos de SNR permitidos
+            #Returns the object with the selected operation modes            
+            obj_lista_modos_FA = OAR.read_MOB_obj()                                         
+            #-------------------------------------------------------------------------                   
+            #Starts the object for the determination of the mode with the optimum SNR            
             OSNR = osnr.OptSignalNoiseRation(serial_number = self.serial_number,
                                              snr_target = self.snr,
                                              ccd_temp = self.ccd_temp,
@@ -197,38 +182,33 @@ class Optimize_Operation_Mode:
                                              sky_flux = self.sky_flux,
                                              star_flux = self.star_flux,
                                              bias_level = self.bias_level)
-            #escreve na classe a lista dos modos que atendem ao requisito da Freq.
+            #Write the list of the modes selected in the previous step            
             OSNR.write_MOB_obj(obj_lista_modos_FA)
-            #OAR.print_MOB_list(),exit()
-            # determina os modos de operação que atendem ao SNR mínimo fornecido
-            OSNR.determine_operation_modes_minimun_SNR()                                                   
-            # Lê o objeto Modos de Operação contendo a lista dos modos selecionados
-            obj_list_of_modes = OSNR.read_MOB_obj()      
-            # Imprime a lista de objetos na tela
-            #OSNR.print_MOB_list()
-
+            #Determines which modes meet the minimum provided SNR             
+            OSNR.determine_operation_modes_minimun_SNR()
+            #Returns the list of selected modes            
+            obj_list_of_modes = OSNR.read_MOB_obj()
+            #-------------------------------------------------------------------------                               
+            #If there is no mode that meets the requirements provided,
+            #the minimum acquisition rate is multiplied by 0.8, and the previous steps are performed again
             if obj_list_of_modes.get_list_of_modes() == []:                              
                 self.acq_rate *= 0.8
                 repeat = True                                        
-            else: repeat = False
-        #----------------------------------------------------------------------------   
-
-        
-        # Escreve dentro da classe o objeto contendo os modos de operação selecionados pela OSNR
-        OAR.write_MOB_obj(obj_list_of_modes)       
-        #Imprime na tela os modos de operação fornecidos
-        #OAR.print_MOB_list(),exit()
-        #Determina o modo de operação mais rápido contido na lista do objeto MOB
+            else: repeat = False          
+        #Write the list of selected operation modes
+        OAR.write_MOB_obj(obj_list_of_modes)              
+        #Determines the operation mode with the best acquisition rate
         best_mode = OAR.determine_fastest_operation_mode()
-        #Imprime na tela o melhor modo
+        #Prints on the screen the best mode
         OAR.print_best_mode()        
         if fa_target > self.acq_rate:
             print('\nUsed FA= ', round(self.acq_rate,2), 'Hz')
             print('It was not possible to reach the desirable FA')
-
         if 's' in self.export_arq:
-           OAR.export_optimal_setup(self.img_directory, self.file_base_name, self.star_radius, self.obj_coords, self.acq_rate)
+           OAR.export_optimal_setup(self.img_dir, self.file_base_name, self.star_radius, self.obj_coords, self.acq_rate)
        
+
+
 
     def Optimize_SNR_and_AR(self):
         # Inicializa o objeto para a determinacao da frequencia de aquisicao
@@ -311,61 +291,4 @@ class Optimize_Operation_Mode:
 
 
 
-     
-
-
-##    def calc_max_em_gain(self, max_t_exp, min_t_exp, gain):
-##        #Cálculo do ganho EM máximo permitido para cada modo. O cálculo é baseado na quantidade máxima de 100 fótons
-##        # por pixel do CCD para a qual o modo EM é melhor que o Convencional.
-##        # Esta função recebe o t_exp máximo de cada modo. Contudo, dentro de um mesmo modo, o ganho EM poderia ser maior
-##        # quando a iteração escolher um t_exp menor. Talvez, esta seja uma limitação da biblioteca. Ainda não achei solução        
-##        max_fotons = 100
-##        dc = 0.0007
-##        bias = self.bias_level
-##        max_ADU = (2**16)*0.8        
-##        aux = (self.sky_flux + 1000000 + dc)*max_t_exp        
-##        max_em_gain = (max_ADU - bias)/(aux/gain)        
-##        if aux > max_fotons:
-##            max_em_gain = (max_ADU - bias)/(max_fotons/gain)
-##            max_t_exp = max_fotons/(self.sky_flux + self.star_flux/self.n_pix_star + dc)        
-##        if max_t_exp < min_t_exp:
-##            max_em_gain = 0
-##            t_exp = 0    
-##        return max_em_gain, max_t_exp
-##
-##
-##    def set_gain(self, em_mode, hss, preamp):
-##        gain = 0
-##        if em_mode == 1:
-##            if hss == 30:
-##                if preamp == 1:
-##                    gain = 17.2
-##                if preamp == 2:
-##                    gain = 5.27
-##            if hss == 20:
-##                if preamp == 1:
-##                    gain = 16.4
-##                if preamp == 2:
-##                    gain = 4.39
-##            if hss == 10:
-##                if preamp == 1:
-##                    gain = 16.0
-##                if preamp == 2:
-##                    gain = 3.96
-##            if hss == 1:
-##                if preamp == 1:
-##                    gain = 15.9
-##                if preamp == 2:
-##                    gain = 3.88
-##        else:
-##            if hss == 1:
-##                if preamp == 1:
-##                    gain = 3.37
-##                if preamp == 2:
-##                    gain = 0.8
-##            if hss == 0.1:
-##                if preamp == 1:
-##                    gain = 3.35
-##                if preamp == 2:
-##                    gain = 0.8
-##        return gain  
+    
