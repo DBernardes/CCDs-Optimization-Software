@@ -23,7 +23,7 @@ OOM.verify_provides_modes()
 #Calculate the star flux
 OOM.calc_star_flux()
 #Optimize(1-SNR, 2-FA, 3-Ambos)
-OOM.optimize(1)
+OOM.optimize(2)
 
 
 

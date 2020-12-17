@@ -6,11 +6,11 @@
 
 #10/01/2020. Denis Varise Bernardes.
 
-import Optimize_Signal_Noise_Ratio_Bib as osnr
-import Optimize_Acquisition_Rate_Bib as oar
-import Optimize_Signal_Noise_Ratio_and_Acquisition_Rate_Bib as osnrar
-import SNR_Calculation_Bib as snrc
-import Acquisition_Rate_Calculation_Bib as arc
+import Optimize_SNR as osnr
+import Optimize_AR as oar
+import Optimize_SNR_and_AR as osnrar
+import SNR_Calc as snrc
+import AR_Calc as arc
 import Modos_Operacao_Bib as mob
 import FWHM
 from sys import exit
@@ -165,7 +165,7 @@ class Optimize_Operation_Mode:
         repeat = True
         fa_target = self.acq_rate
         while repeat == True:
-            #Starts the object for the determination of the mode with the optimum acquisition rate            
+            #Starts the object for the determination of the modes that accomplish the minimum acquisition rate            
             OAR =  oar.OptimizeAcquisitionRate(acquisition_rate = self.acq_rate,
                                                sub_img_modes=self.sub_img_modes,
                                                binn_modes=self.binn_modes)            
@@ -174,7 +174,7 @@ class Optimize_Operation_Mode:
             #Returns the object with the selected operation modes            
             obj_lista_modos_FA = OAR.read_MOB_obj()                                         
             #-------------------------------------------------------------------------                   
-            #Starts the object for the determination of the mode with the optimum SNR            
+            #Starts the object for the determination of the modes that accomplish the minimum SNR     
             OSNR = osnr.OptSignalNoiseRation(serial_number = self.serial_number,
                                              snr_target = self.snr,
                                              ccd_temp = self.ccd_temp,
@@ -211,19 +211,17 @@ class Optimize_Operation_Mode:
 
 
     def Optimize_SNR_and_AR(self):
-        # Inicializa o objeto para a determinacao da frequencia de aquisicao
+        #Starts the object for the determination of the modes that accomplish the minimum acquisition rate                   
         OAR =  oar.OptimizeAcquisitionRate(acquisition_rate = self.acq_rate, sub_img_modes=self.sub_img_modes, binn_modes=self.binn_modes)    
-        #Determina quais modos se encaixam nos parametros passados
+        #Determines which modes meet the provided bin and sub-images options    
         OAR.determine_operation_modes()
-        #Retorna um objeto contendo os modos de operacao selecionados
-        obj_lista_modos_FA = OAR.read_MOB_obj()
-        #Cria a lista de modos à partir do objeto MOB        
-        #OAR.print_MOB_list(),exit()
-           
+        #Returns the object with the selected operation modes   
+        obj_lista_modos_FA = OAR.read_MOB_obj()       
+        #-------------------------------------------------------------------------   
         repeat = True
         initial_snr = self.snr
         while repeat == True:            
-            #cria o objeto da classe que encontra os modos de SNR permitidos
+            #Starts the object for the determination of the modes that accomplish the minimum SNR
             OSNR = osnr.OptSignalNoiseRation(serial_number = self.serial_number,
                                              snr_target = self.snr,
                                              ccd_temp = self.ccd_temp,
@@ -231,22 +229,20 @@ class Optimize_Operation_Mode:
                                              sky_flux = self.sky_flux,
                                              star_flux = self.star_flux,
                                              bias_level = self.bias_level)
-            #escreve na classe a lista dos modos que atendem ao requisito da Freq.
-            OSNR.write_MOB_obj(copy(obj_lista_modos_FA))
-            #OSNR.print_MOB_list()
-            # determina os modos de operação que atendem ao SNR mínimo fornecido
+            #Write the list of selected operation modes in the previous step
+            OSNR.write_MOB_obj(copy(obj_lista_modos_FA))            
+            #Selects those modes that accomplish the minimum SNR
             OSNR.determine_operation_modes_minimun_SNR()        
-            # Lê o objeto Modos de Operação contendo a lista dos modos selecionados
-            obj_list_of_modes = OSNR.read_MOB_obj()       
-            # Imprime a lista de objetos na tela
-            #OSNR.print_MOB_list()
-            
+            #Returns the list of selected modes
+            obj_list_of_modes = OSNR.read_MOB_obj()                  
+            #If there is no mode that meets the requirements provided,
+            #the minimum SNR is multiplied by 0.8, and the previous steps are performed again
             if obj_list_of_modes.get_list_of_modes() == []:                              
                 self.snr *= 0.8
                 repeat = True                                        
             else: repeat = False
-        
-        #Cria o objeto que otimiza a SNR e a FA ao mesmo tempo
+        #-------------------------------------------------------------------------   
+        #Starts the object the optimiza both the SNR and the acquisition rante        
         OSNRAR = osnrar.Opt_SignalNoiseRatio_AcquisitionRate(snr_target = self.snr,
                                                            acq_rate = self.acq_rate,
                                                            sub_img_modes = self.sub_img_modes,
@@ -257,37 +253,29 @@ class Optimize_Operation_Mode:
                                                            sky_flux = self.sky_flux,
                                                            star_flux = self.star_flux,
                                                            bias_level = self.bias_level)
-        
-
-        
-      
-
-        #Escreve na classe o obj com a lista de modos selecionados pela FA e SNR
-        OSNRAR. write_MOB_obj(obj_list_of_modes)
-        #OSNRAR.print_MOB_list(),exit()
-        # Realiza várias iterações para o cálculo da média e desvio padrão da SNR e FA
-        # Possui um problema. A SNR pode não ser atingida caso o texp e o em_gain escolhidos
-        # sejam muito pequenos. Quando isso ocorre, a função retorna valor zero (descarta)
+        #Write the selected modes in the previous steps        
+        OSNRAR. write_MOB_obj(obj_list_of_modes)        
+        #Calculates the mean and standard deviation of the SNR and acquisition rate.
+        #However, it can happen that the SNR is not reached if the chosen texp and em_gain are very small.
+        #In these cases, the function discards the respective value
         OSNRAR.SNR_FA_ranges(allow_every_mode = 'n')        
-        #Cria o espaço de estados no formato do MOB.
+        #Creates the space of states in the hyperopt library format
         OSNRAR.create_space(allow_every_mode = 'n')       
-        # Roda o MOB para a quantidade de iterações fornecida
+        #Runs the optimzation
         OSNRAR.run_bayesian_opt(max_evals=self.max_evals, algorithm = self.algorithm)
-        #printa na tela o melhor modo
+        #Prints the best mode on the screen
         OSNRAR.print_best_mode()
-        #cria um arquivo contendo o log dos valores do ruido obtidos em cada iteracao
-        #OSNRAR.creat_log_loss()
-
         if initial_snr > self.snr:
             print('\nUsed SNR= ', round(self.snr,2))
             print('It was not possible to reach the desirable SNR')
 
+        #Exports the optimzation iterations to a .txt file
         if 's' in self.export_loss:            
-            OSNRAR.creat_log_parameters(self.img_directory, self.file_base_name)        
+            OSNRAR.creat_log_parameters(self.img_dir, self.file_base_name)
+        #Exports the optimal mode to a .txt file
         if 's' in self.export_arq:
-            OSNRAR.export_optimal_setup(self.img_directory, self.file_base_name, self.star_radius, self.obj_coords, self.snr)
-        if 's' in self.export_bias:
-            OSNRAR.create_bias_list(self.img_directory, self.file_base_name)
+            OSNRAR.export_optimal_setup(self.img_dir, self.file_base_name, self.star_radius, self.obj_coords, self.snr)
+        
 
 
 

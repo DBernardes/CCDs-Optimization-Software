@@ -18,26 +18,6 @@ class ReadNoiseCalc:
 
     def __init__(self):         
         self.noise = 0
-##        self.PA1B1HSS1  = 'RN_PA1B1HSS1.xlsx'
-##        self.PA1B1HSS10 = 'RN_PA1B1HSS10.xlsm'
-##        self.PA1B1HSS20 = 'RN_PA1B1HSS20.xlsm'
-##        self.PA1B1HSS30 = 'RN_PA1B1HSS30.xlsm'    
-##    
-##        self.PA1B2HSS1 =  'RN_PA1B2HSS1.xlsm'
-##        self.PA1B2HSS10 = 'RN_PA1B2HSS10.xlsm'
-##        self.PA1B2HSS20 = 'RN_PA1B2HSS20.xlsm'
-##        self.PA1B2HSS30 = 'RN_PA1B2HSS30.xlsm'    
-##    
-##        self.PA2B1HSS1 =  'RN_PA2B1HSS1.xlsm'
-##        self.PA2B1HSS10 = 'RN_PA2B1HSS10.xlsm'
-##        self.PA2B1HSS20 = 'RN_PA2B1HSS20.xlsm'
-##        self.PA2B1HSS30 = 'RN_PA2B1HSS30.xlsm'
-##
-##        self.PA2B2HSS1 =  'RN_PA2B2HSS1.xlsm'
-##        self.PA2B2HSS10 = 'RN_PA2B2HSS10.xlsm'
-##        self.PA2B2HSS20 = 'RN_PA2B2HSS20.xlsm'
-##        self.PA2B2HSS30 = 'RN_PA2B2HSS30.xlsm'
-##
 
     def write_operation_mode(self, em_mode, em_gain, hss, preamp, binn):
         # Foi feito um ajuste por causa da funcao Bayesian OPT
@@ -99,7 +79,7 @@ class ReadNoiseCalc:
                 if self.binn == 2:
                     indice_tab = 24
         
-        column_noise = self.read_tab_return_column('planilhas/Tabelas_Valores_Ruido_Leitura.xlsm', 'Noise')
+        column_noise = self.read_tab_return_column('Spreadsheets/Tabelas_Valores_Ruido_Leitura.xlsm', 'Noise')
         self.noise = column_noise[indice_tab]      
     
 
@@ -112,7 +92,7 @@ class ReadNoiseCalc:
 ##        if self.hss == 10: hss = 20
 ##        if self.hss == 1: hss = 30       
         
-        tab_name = 'planilhas/RN_PA' + str(int(self.preamp)) + 'B' + str(int(self.binn)) + 'HSS' + str(int(hss)) + '.xlsm'           
+        tab_name = 'Spreadsheets/RN_PA' + str(int(self.preamp)) + 'B' + str(int(self.binn)) + 'HSS' + str(int(hss)) + '.xlsm'           
         column_noise = self.read_tab_return_column(tab_name, 'Noise (e-)')[0:11]
         column_em_gain = self.read_tab_return_column(tab_name, 'EM Gain')[0:11]
         f = interp1d(column_em_gain, column_noise)

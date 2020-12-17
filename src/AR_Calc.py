@@ -20,7 +20,7 @@ class AcquisitionRateCalc:
     def __init__(self):        
         self.acquisition_rate = 0
         self.t_corte = 0
-        self.tab_valores_readout = 'planilhas/Tabela_Valores_Readout.xlsm'
+        self.tab_valores_readout = 'Spreadsheets/Tabela_Valores_Readout.xlsm'
         self.max_t_exp = 0
 
 
@@ -44,7 +44,7 @@ class AcquisitionRateCalc:
             tab_name+= '01'
         else:
             tab_name+= str(self.hss)
-        return 'planilhas/' + tab_name + '.xlsm'
+        return 'Spreadsheets/' + tab_name + '.xlsm'
 
 
     def calc_acquisition_rate_texp_greater_tcorte(self):
@@ -201,25 +201,4 @@ class AcquisitionRateCalc:
 
     def return_acquisition_rate(self):
         return self.acquisition_rate
-
-##s = '22113'
-##em_mode = 0
-##if s[0] == '2': em_mode = 1
-##hss = 0.1
-##if s[1] == '2': hss = 1
-##if s[1] == '4': hss = 10
-##if s[1] == '5': hss = 20
-##if s[1] == '6': hss = 30
-##binn = int(s[3])
-##sub_img = 256
-##if s[4] == '2': sub_img = 512
-##if s[4] == '3': sub_img = 1024
-##
-##ARC = AcquisitionRateCalc()
-##ARC.write_operation_mode(em_mode = em_mode, hss = hss, binn = binn, sub_img = sub_img, t_exp = 40)
-##ARC.seleciona_t_corte()
-##ARC.calc_acquisition_rate()
-##FA = round(float(ARC.acquisition_rate),2)
-##FA = str(FA).split('.')
-##print('\nAcquisition Rate = ',FA[0]+','+FA[1], 'Hz')
 

@@ -10,7 +10,7 @@ import astropy.io.fits as fits
 import matplotlib.pyplot as plt
 import numpy as np
 from sys import exit
-import Read_Noise_Calculation_Bib as RNC
+import Read_Noise_Calc as RNC
 
 class SignalToNoiseRatioCalc:
 
@@ -168,25 +168,3 @@ class SignalToNoiseRatioCalc:
         print('Read Noise: ', self.read_noise, 'e-/pix')
         print('Dark Noise: ', self.dark_noise, 'e-/pix')        
 
-
-##SNRC = SignalToNoiseRatioCalc(t_exp = 180,
-##                              em_mode = 1,
-##                              em_gain = 2,
-##                              hss = 1,
-##                              preamp = 1,
-##                              binn = 2,
-##                              ccd_temp = -60,
-##                              sky_flux = 74.24190466671605 , #e-/pix/s
-##                              star_flux = 2385.7805555555556, #e-/s
-##                              n_pix_star = 1620,
-##                              serial_number = 9916)
-##SNRC.set_gain_value()
-##SNRC.calc_RN()
-##SNRC.calc_DC()
-##SNRC.calc_SNR()
-##snr = SNRC.get_SNR()
-##print('\nSNR = ', snr)
-##SNRC.print_noise_info()
-##
-##t_exp = SNRC.calc_minimun_texp_provided_SNR(75.58)
-##print('\n', t_exp)
