@@ -72,31 +72,17 @@ class OptimizeAcquisitionRate:
 
 
     
-    def determine_max_and_min_acquisition_rate(self):
+    def determine_min_acquisition_rate(self):
         #Given a list of modes, this functions calculates the highest and the smallest acquisition rates
         max_acq_rate = 0
         min_acq_rate = 1e3
         best_mode = {}        
-        for mode in self.MOB.get_list_of_modes():            
-            self.ARC.write_operation_mode(mode['em_mode'], mode['hss'], mode['binn'],  mode['sub_img'], mode['min_t_exp']) 
-            self.ARC.seleciona_t_corte()
-            self.ARC.calc_acquisition_rate()            
-            if self.ARC.acquisition_rate > max_acq_rate:
-                max_acq_rate = float(self.ARC.return_acquisition_rate())
-                self.best_mode = mode    
-                self.best_mode['max_acq_rate'] = max_acq_rate                            
-            #These ifs are needed for those cases where there are several sub-images options for the same optimum mode
-            if self.ARC.acquisition_rate == max_acq_rate:
-                if mode['hss'] == self.best_mode['hss']:
-                    if mode['em_mode'] == self.best_mode['em_mode']:
-                        if mode['binn'] == self.best_mode['binn']:
-                            if mode['sub_img'] > self.best_mode['sub_img']:
-                                self.best_mode['sub_img'] = mode['sub_img']
+        for mode in self.MOB.get_list_of_modes():                      
             self.ARC.write_operation_mode(mode['em_mode'], mode['hss'], mode['binn'],  mode['sub_img'], mode['max_t_exp']) 
             self.ARC.seleciona_t_corte()
             self.ARC.calc_acquisition_rate()
             if self.ARC.acquisition_rate < min_acq_rate: min_acq_rate = float(self.ARC.return_acquisition_rate())        
-        return self.best_mode, min_acq_rate
+        return min_acq_rate
 
 
 
@@ -120,7 +106,7 @@ class OptimizeAcquisitionRate:
                         if mode['binn'] == self.best_mode['binn']:
                             if mode['sub_img'] > self.best_mode['sub_img']:
                                 self.best_mode['sub_img'] = mode['sub_img']
-        return self.best_mode                
+        return self.best_mode, max_acq_rate                
 
 
     def print_best_mode(self):                 

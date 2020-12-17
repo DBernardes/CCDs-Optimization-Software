@@ -24,7 +24,7 @@ class AcquisitionRateCalc:
         self.max_t_exp = 0
 
 
-    def write_operation_mode(self, em_mode, hss, binn, sub_img, t_exp):
+    def write_operation_mode(self, em_mode, hss, binn, sub_img, t_exp):        
         self.t_exp = t_exp
         self.em_mode = em_mode        
         self.hss = hss        
@@ -38,7 +38,7 @@ class AcquisitionRateCalc:
 
 
     def define_acq_rate_tab_name(self):
-        #monta a string do nome da planilha em funcao do modo de operacao do CCD
+        #Mounts the string of the spreadsheet name the be used as a function of the CCD.        
         tab_name = 'X' + str(self.sub_img) + 'B' + str(self.binn) + 'HSS'
         if self.hss == 0.1:
             tab_name+= '01'
@@ -52,18 +52,17 @@ class AcquisitionRateCalc:
         
 
     def calc_acquisition_rate_texp_lower_tcorte(self):
-        #nome da planilha com a curva de acq_rate x t_exp
+        #Name of the spreadsheet
         tab_name = self.define_acq_rate_tab_name()
-        #retorna a coluna com o tempo de exposicao
+        #Get the column with the exposure times
         t_exp_column = self.read_tab_return_column(tab_name, 'TEXP (s)')
         t_exp_column = self.filter_list(t_exp_column)
-        #retorna a coluna com a frequencia de aquisicao
+        #Get the column with the acquisition rate
         acq_rate_column = self.read_tab_return_column(tab_name, 'FREQ (fps)')
-        acq_rate_column = self.filter_list(acq_rate_column)
-        #print(t_exp_column,acq_rate_column) 
-        #interpola os dados        
+        acq_rate_column = self.filter_list(acq_rate_column)        
+        #Interpolates the data
         f = interp1d(t_exp_column, acq_rate_column)
-        #calcula a frequencia de aquisicao com base na interpolacao
+        #Calculates the acquisition rate
         self.acquisition_rate = f(self.t_exp) 
 
 
@@ -78,8 +77,8 @@ class AcquisitionRateCalc:
 
 
     def seleciona_t_corte(self):
-        #Os ifs verificam se o t_exp esta antes ou depois do t_c
-        # em funcao do modo de operacao
+        #This function selects the times that CCD spends to read the image.
+        #This times were obtained in the work presented in https://repositorio.unifei.edu.br/jspui/handle/123456789/2201
         indice_tab_t_corte = 0
         if self.hss == 30:
             if self.sub_img == 1024:
@@ -161,16 +160,15 @@ class AcquisitionRateCalc:
                     indice_tab_t_corte = 29
                 if self.binn == 1:
                     indice_tab_t_corte = 30 
-
-        #Retorna os valores de readout da camera para todos os modos
+        #Get the readout values
         readout_times = self.read_tab_return_column(self.tab_valores_readout , 'Tempo critico')[1:31]
-        #Seleciona um readout com base no modo de operacao
+        #Select the readout value based on the index obtained in previous step.
         self.t_corte = readout_times[indice_tab_t_corte]
         
 
     def calc_acquisition_rate(self):
-        #Para t_exp < t_corte: interpola os dados da planilha
-        #Para t_exp > t_corte: calcula 1/t_exp
+        #For t_exp < t_c: interpolates the spreadsheet data
+        #For t_exp > t_c: calculates 1/t_exp
         if self.t_exp < self.t_corte:
             self.calc_acquisition_rate_texp_lower_tcorte()
         if self.t_exp >= self.t_corte:
@@ -183,19 +181,17 @@ class AcquisitionRateCalc:
         if acq_freq <= freq_corte:
             self.max_t_exp = 1/acq_freq
         if acq_freq > freq_corte:
-            #nome da planilha com a curva de acq_rate x t_exp
+            #Name of the spreadsheet with the texp vs acquisition rate curve
             tab_name = self.define_acq_rate_tab_name()
-            #retorna a coluna com o tempo de exposicao
+            #Get the exposure time column
             t_exp_column = self.read_tab_return_column(tab_name, 'TEXP (s)')
             t_exp_column = self.filter_list(t_exp_column)
-            #retorna a coluna com a frequencia de aquisicao
+            #Get the acquisition rate column
             acq_rate_column = self.read_tab_return_column(tab_name, 'FREQ (fps)')
-            acq_rate_column = self.filter_list(acq_rate_column)
-            #print(t_exp_column,acq_rate_column) 
-            #calcula o t_exp em função da frequência de aquisição fornecida            
+            acq_rate_column = self.filter_list(acq_rate_column)            
+            #Calculates the exposure time given the acquisition rate         
             f = interp1d(acq_rate_column, t_exp_column)        
-            self.max_t_exp = float(f(acq_freq))
-            #print(self.max_t_exp)
+            self.max_t_exp = float(f(acq_freq))            
         return self.max_t_exp
 
 

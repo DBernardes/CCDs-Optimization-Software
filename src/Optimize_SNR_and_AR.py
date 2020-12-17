@@ -136,6 +136,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         self.new_list = []
         
     def set_gain(self, em_mode, hss, preamp):
+        #Select the value of the CCD gain
         gain = 0
         if em_mode == 1:
             if hss == 30:
@@ -199,7 +200,9 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
             print(modo)  
 
 
-    def SNR_FA_ranges(self, allow_every_mode):       
+    def SNR_FA_ranges(self, allow_every_mode):
+        #This function calculates hte minimum and maximum values of the
+        #SNR and the AR for the normamization of the cost function.
         OSNR = osnr.OptSignalNoiseRation(snr_target = self.snr_target,
                                          serial_number = self.serial_number,
                                          ccd_temp = self.ccd_temp,
@@ -207,18 +210,21 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
                                          sky_flux = self.sky_flux,
                                          star_flux = self.star_flux,
                                          bias_level = self.bias_level)            
-        OSNR.write_MOB_obj(copy(self.MOB))                              
-        max_snr, min_snr  = OSNR.calc_max_snr_min_snr()
+        OSNR.write_MOB_obj(copy(self.MOB))                
+        OSNR.duplicate_list_of_modes_for_PA12()        
+        OSNR.remove_repeat_modes()                       
+        max_snr  = OSNR.calc_best_mode()
+        min_snr  = OSNR.calc_min_snr()
         OAR =  oar.OptimizeAcquisitionRate(acquisition_rate = self.acq_rate_target,
                                            sub_img_modes=self.sub_img_modes,
                                            binn_modes=self.binn_modes)
         OAR.write_MOB_obj(copy(self.MOB))        
-        best_mode, min_fa = OAR.determine_max_and_min_acquisition_rate()
-        max_fa = best_mode['max_acq_rate']                      
+        min_fa = OAR.determine_min_acquisition_rate()
+        best_mode, max_fa = OAR.determine_fastest_operation_mode()        
         self.max_snr = max_snr
         self.min_snr = min_snr
         self.max_fa = max_fa
-        self.min_fa = min_fa       
+        self.min_fa = min_fa        
         
     
 
@@ -251,21 +257,16 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
 
 
     def create_space(self, allow_every_mode):       
-        i=0
-        #Fiz esta lista porque a opção 'continue' quebra a igualdade entre a lista de modos selecionada anteriormente
-        # e a lista de modos do espaço de estados do MOB. Logo, esta lista irá propagar esta igualdade
+        i=0        
         self.new_list = []       
         space_all_modes = []
-        #Este loop transforma cada modo selecinado no formato do espaço de
-        # estados da funcao hyperopt. Entao, é passado para uma lista space_all_modes que, por sua vez,
-        # eh passada para a funcao hp.choice. Isso evita a selecao de modos nao permitidos durante a otimizacao.        
+        #This loop transforms each selected mode into the state space format of the hyperopt function.       
         for mode in self.MOB.get_list_of_modes():
             max_em_gain = 0            
             max_t_exp = mode['max_t_exp']
             min_t_exp = mode['min_t_exp']                        
             t_exp   = hp.uniform('t_exp_' + str(i), min_t_exp, max_t_exp)            
-            em_mode = hp.choice('em_mode_' + str(i), [mode['em_mode']])
-            #como o ganho nao tem influencia para em_mode=0, eu forco o zero.
+            em_mode = hp.choice('em_mode_' + str(i), [mode['em_mode']])            
             em_gain = hp.choice('em_gain_'+ str(i), [max_em_gain]) 
             
             if mode['em_mode'] == 1:                
@@ -297,24 +298,20 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         gc.collect()
         # Create the algorithm
         tpe_algo = algorithm
-
         # Create a trials object
-        self.tpe_trials = Trials()
-        
-        #Parametros para normalizar a SNR e a FA
+        self.tpe_trials = Trials()        
+        #Normalization parameters
         max_snr = self.max_snr                       
         min_snr = self.min_snr
         max_fa = self.max_fa                       
-        min_fa = self.min_fa                
-
-        # Run evals with the tpe algorithm
+        min_fa = self.min_fa
+        #Run evals with the tpe algorithm
         best_mode  = fmin(fn=function,
                           space=self.space+[max_snr, min_snr, max_fa, min_fa, self.snr_target],
                           algo=tpe_algo,
                           trials=self.tpe_trials,
                           max_evals=max_evals,
-                          rstate= np.random.RandomState(50))
-        
+                          rstate= np.random.RandomState(50))        
         index_list_modes = best_mode['operation_mode']
         chosen_mode = self.new_list[index_list_modes]        
         t_exp = best_mode['t_exp_' + str(index_list_modes)]
@@ -324,8 +321,14 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         preamp = chosen_mode['preamp']
         binn = chosen_mode['binn']
         sub_img = chosen_mode['sub_img']
-        self.best_mode = {'t_exp':t_exp, 'em_mode':em_mode, 'em_gain':em_gain,'hss':hss, 'preamp':preamp,'binn':binn, 'sub_img':sub_img, 'SNR*FA':-self.tpe_trials.best_trial['result']['loss']}       
-        print(self.best_mode)
+        self.best_mode = {'t_exp':t_exp,
+                          'em_mode':em_mode,
+                          'em_gain':em_gain,
+                          'hss':hss,
+                          'preamp':preamp,
+                          'binn':binn,
+                          'sub_img':sub_img,
+                          'SNR*FA':-self.tpe_trials.best_trial['result']['loss']}            
 
 
 
@@ -346,31 +349,19 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
 
 
     def creat_log_parameters(self, path, file_base_name):
-        # neste loop eh criado um arquivo contendo o log dos parametros utilizados em cada iteração do MOB.
-        # Esta função é necessária porque a biblioteca retorna apenas o indice da lista do modo utilizado. Este índice
-        # é usado para obter os parâmetros "chutados" ao longo das iterações.
-        # Os valores do EMGain e do t_exp precisam ser obtidos através do próprio LOG da biblioteca.                    
+        #In this function, it is created a file with the log of the used parameters of each MOB iteration.        
         opt_log = self.tpe_trials.idxs_vals[1]        
-        op_modes_list = opt_log['operation_mode']
-
-               
-        # Este loop adiciona aos dicionários os valores chutados pelo MOB, separando-os por keywords. Estas keyword correspondem
-        # ao índice do modo na lista de modos selecionados fornecida para o MOB.
-        # Pode acontecer de uma keyword receber uma lista de valores. Este problema é resolvido com a função pop()
-        # que retira sempre o primeiro valor da lista
+        op_modes_list = opt_log['operation_mode']                       
         dic_em_gain = {}
         dic_t_exp = {}        
         for item, count in collections.Counter(op_modes_list).items():
            dic_em_gain[str(item)] = opt_log['em_gain_' + str(item)]
            dic_t_exp[str(item)] = opt_log['t_exp_' + str(item)]          
-
-                
         dic={}
         arq = open(path + file_base_name + '_LOG.txt', 'w')
         for i in range(len(op_modes_list)):
             item = op_modes_list[i]            
             mode = self.new_list[item]
-
             dic['em_mode'] = 'CONV'
             if mode['em_mode'] == 1: dic['em_mode'] = 'EM'
             dic['em_gain'] = int(dic_em_gain[str(item)].pop(0))
@@ -391,6 +382,8 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
             json.dump(dic, arq, sort_keys=True)
             arq.write('\n')            
         arq.close()
+        
+
 
     def create_bias_list(self, path, file_base_name):
         arq = open(path + file_base_name + '_LOG.txt', 'r')
@@ -423,9 +416,18 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         sub_img = self.best_mode['sub_img']
         t_exp = self.best_mode['t_exp']
         em_gain = self.best_mode['em_gain']
-        preamp = self.best_mode['preamp']
-        
-        SNRC = snrc.SignalToNoiseRatioCalc(t_exp, em_mode, em_gain, hss, preamp, binn, self.ccd_temp, self.sky_flux, self.star_flux, self.n_pix_star, self.serial_number)
+        preamp = self.best_mode['preamp']        
+        SNRC = snrc.SignalToNoiseRatioCalc(t_exp,
+                                           em_mode,
+                                           em_gain,
+                                           hss,
+                                           preamp,
+                                           binn,
+                                           self.ccd_temp,
+                                           self.sky_flux,
+                                           self.star_flux,
+                                           self.n_pix_star,
+                                           self.serial_number)
         SNRC.set_gain_value()
         SNRC.calc_RN()
         SNRC.calc_DC()
@@ -435,8 +437,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         ARC.write_operation_mode(em_mode, hss, binn, sub_img, t_exp)
         ARC.seleciona_t_corte()
         ARC.calc_acquisition_rate()
-        fa = float(ARC.return_acquisition_rate())
-                
+        fa = float(ARC.return_acquisition_rate())                
         dic={}        
         if self.best_mode['em_mode'] == 1:
             dic['em_mode'] = 'EM'            
@@ -460,9 +461,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         dic['min_fa'] = self.min_fa
         dic['snr_target'] = snr_target
         dic['SNR'] = snr
-        dic['FA'] = fa
-
-        #if img_directory!= '': os.chdir(img_directory)       
+        dic['FA'] = fa        
         file_name = img_directory + file_base_name + '_OPTSETUP.txt'
         with open(file_name, 'w') as arq:
             json.dump(dic, arq, indent = 4, sort_keys=True)

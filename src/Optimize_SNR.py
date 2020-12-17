@@ -225,7 +225,7 @@ class OptSignalNoiseRation:
             self.filtered_list.remove(mode)        
 
 
-    def calc_max_snr_min_snr(self):
+    def calc_min_snr(self):
         #This function calculates the maximum and minimum values of the SNR for the selected operation modes.
         max_snr = 0
         min_snr = 1e5
@@ -235,10 +235,9 @@ class OptSignalNoiseRation:
             hss = mode['hss']
             binn = mode['binn']            
             preamp = mode['preamp']
-            max_em_gain = 0
-            min_em_gain = 1
-            max_t_exp = mode['max_t_exp']
             min_t_exp = mode['min_t_exp']
+            max_em_gain = 0
+            min_em_gain = 1                        
             if mode['em_mode'] == 1:
                 min_em_gain = 2
                 self.set_gain(em_mode, hss, preamp) 
@@ -246,31 +245,7 @@ class OptSignalNoiseRation:
                 if max_em_gain == 0:
                     print('The number of photons per pixel is above 100. This mode was rejected.')
                     continue
-                if max_em_gain > 300: max_em_gain = 300            
-            SNRC = snrc.SignalToNoiseRatioCalc(max_t_exp,
-                                               em_mode,
-                                               max_em_gain,
-                                               hss, preamp,
-                                               binn,
-                                               self.ccd_temp,
-                                               self.sky_flux,
-                                               self.star_flux,
-                                               self.n_pix_star,
-                                               self.serial_number)
-            SNRC.set_gain_value()
-            SNRC.calc_RN()
-            SNRC.calc_DC()
-            SNRC.calc_SNR()
-            snr = SNRC.get_SNR()
-            if snr > max_snr:                
-                max_snr = snr
-                best_mode = copy(mode)
-                best_mode['em_gain'] = max_em_gain
-                best_mode['t_exp'] = max_t_exp
-                best_mode['SNR'] = snr               
-                del best_mode['max_t_exp']
-                del best_mode['min_t_exp']
-                
+                if max_em_gain > 300: max_em_gain = 300                           
             SNRC = snrc.SignalToNoiseRatioCalc(min_t_exp,
                                                em_mode,
                                                max_em_gain,
@@ -289,7 +264,7 @@ class OptSignalNoiseRation:
             snr = SNRC.get_SNR()
             if snr < min_snr: min_snr = snr            
         self.best_mode = best_mode        
-        return max_snr, min_snr
+        return min_snr
         
 
 
@@ -326,7 +301,7 @@ class OptSignalNoiseRation:
             SNRC.calc_RN()
             SNRC.calc_DC()
             SNRC.calc_SNR()
-            snr = SNRC.get_SNR()
+            snr = SNRC.get_SNR()            
             if snr > best_snr:                
                 best_snr = snr
                 best_mode = mode
@@ -335,7 +310,7 @@ class OptSignalNoiseRation:
                 best_mode['SNR'] = snr               
                 del best_mode['max_t_exp']
                 del best_mode['min_t_exp']
-        self.best_mode = best_mode
+        self.best_mode = best_mode        
         return best_snr
       
 
