@@ -57,89 +57,86 @@ class Optimize_Operation_Mode:
         self.bias_name = bias_name 
         self.sky_radius = sky_radius
         self.star_radius = 0
-        self.bias_level = 500
-        self.ccd_gain = 3.36
+        self.bias_level = 500        
 
         self.MOB = []
 
-
-        
+       
 
     def verify_provides_modes(self):
+        #Verifies if the provided sub_img and bin modes are allowed
         for sub_img in self.sub_img_modes:
             if sub_img not in [1024,512,256]:
-                print('\nModo sub-image inválido! [%i]'%sub_img)
-                #print(sub_img)
+                print('\nModo sub-image inválido! [%i]'%sub_img)                
                 exit()
         for binn in self.binn_modes:
             if binn not in [1,2]:
-                print('\nModo binning inválido! [%i]'%binn)
-                #print(binn)
+                print('\nModo binning inválido! [%i]'%binn)                
                 exit()
 
-    def calc_star_flux(self):
-        if self.use_pre_img == 's': self.calc_star_sky_flux_from_preimg()
-        if self.use_pre_img == 'n': self.calc_star_sky_flux_from_magnitude()        
 
-    def calc_star_sky_flux_from_preimg(self):               
+
+    def calc_star_flux(self):
+        #Select the method for the star flux calculation bases on the information provided to the code.
+        if self.use_pre_img == 's': self.calc_star_sky_flux_from_preimg()
+        if self.use_pre_img == 'n': self.calc_star_sky_flux_from_magnitude()
+
+        
+
+    def calc_star_sky_flux_from_preimg(self):
+        #Calculates the star flux based on the pre-image data.
+        #For more information, access: https://github.com/DBernardes/FWHM
         FWHM_obj = FWHM.fwhm(img_name = self.img_dir + '\\' +  self.img_name,                     
                              xy_star = self.obj_coords,
                              sky_radius = self.sky_radius,
-                             bias_name = self.img_dir + '\\' +  self.bias_name,
-                             ccd_gain = self.ccd_gain)
+                             bias_name = self.img_dir + '\\' +  self.bias_name)                             
         FWHM_obj.read_star_img()
         FWHM_obj.get_max_count()
         FWHM_obj.set_centroid()
         fwhm, star_radius, x, y = FWHM_obj.calc_FWHM()
-
         FWHM_obj.read_bias_img()
         FWHM_obj.calc_dark_current()
         FWHM_obj.read_exp_time()
         FWHM_obj.read_em_gain()
         FWHM_obj.calc_star_sky_flux()
         snr, rn, sky_flux, star_flux, n_pixels, bias_level = FWHM_obj.calc_SNR()
-
         self.sky_flux = sky_flux
         self.star_flux = star_flux
         self.n_pix_star = n_pixels
         self.obj_coords = [x,y]
         self.star_radius = star_radius
-        self.bias_level = bias_level
-        print(snr, rn, sky_flux, star_flux, n_pixels, bias_level)
-
+        self.bias_level = bias_level        
 
         
     def calc_star_sky_flux_from_magnitude(self):
-        #Com base na magnitude fornecido pelo usuário, é calculado o fluxo de fótons do objeto
-        # em relação do fluxo do hats24.
+        #Calculates, through the Pogson equation, the star flux based on the magnitude provided to the software. 
+        #This function uses the star flux and magnitude values of the HATS24 star as reference values.       
         aux = 10**((self.hats24_magnitude - self.obj_magnitude)/2.5)
         self.star_flux = self.hats24_flux*aux
-        #print(self.star_flux),exit()
+        
 
 
-    def optimize(self, fixar_param):
-        if fixar_param == 1: self.Optimize_SNR_provided_FA()
-        if fixar_param == 2: self.Optimize_FA_provided_SNR()
-        if fixar_param == 3: self.Optimize_SNR_and_AR()
+    def optimize(self, opt_param):
+        #Choose the optimization method based on the option provided to the software.
+        if opt_param == 1: self.Optimize_SNR()
+        if opt_param == 2: self.Optimize_FA()
+        if opt_param == 3: self.Optimize_SNR_and_AR()
 
-    def Optimize_SNR_provided_FA(self):
-        repeat = True    
-        # Inicializa o objeto para a determinacao da frequencia de aquisicao
+        
+
+    def Optimize_SNR(self):        
+        #Starts the object that determines which modes meet the acquisition rate limit.        
         OAR =  oar.OptimizeAcquisitionRate(acquisition_rate = self.acq_rate,
                                            sub_img_modes=self.sub_img_modes,
-                                           binn_modes=self.binn_modes)       
-        #Determina quais modos se encaixam nos parametros passados
-        OAR.determine_operation_modes()
-        #Retorna um objeto contendo os modos de operacao selecionados
+                                           binn_modes=self.binn_modes)               
+        OAR.determine_operation_modes()        
         obj_lista_modos = OAR.read_MOB_obj()
-        #Cria a lista de modos à partir do objeto MOB        
-        #OAR.print_MOB_list(), exit()
-
         if obj_lista_modos.get_list_of_modes() == []:
-            print('\n\tNenhum modo atende aos requisitos fornecidos.')
+            print('\n\tNo mode meets the requirements provided.')
             print('\tStopping execution.')
-            exit()        
-        #cria o objeto da classe que executa o metodo de otimizacao
+            exit()
+            
+        #Creates the class object that performs the SNR optimization
         OSNR = osnr.OptSignalNoiseRation(snr_target = self.snr,
                                          serial_number = self.serial_number,
                                          ccd_temp = self.ccd_temp,
@@ -147,35 +144,24 @@ class Optimize_Operation_Mode:
                                          sky_flux = self.sky_flux,
                                          star_flux = self.star_flux,
                                          bias_level = self.bias_level)
-
-        #escreve na classe a lista dos modos que atendem ao requisito da Freq.
-        OSNR.write_MOB_obj(obj_lista_modos)       
-        #imprime na tela os modos de operação selecionados pela biblioteca acquisition_frequency
-        #OSNR.print_MOB_list(),exit()
-        #duplica a lista dos modos selecionados para preamp 1 e 2
+        #Write in the class the list of the modes selected in the previous step
+        OSNR.write_MOB_obj(obj_lista_modos)
+        #Duplicates the list of modes for the PREAMP options 1 and 2.        
         OSNR.duplicate_list_of_modes_for_PA12()
-        OSNR.remove_repeat_modes()
-        #OSNR.create_space()
-        #OSNR.run_bayesian_opt(max_evals=self.max_evals, algorithm = self.algorithm)
-        
-        #Realiza um loop calculando a melhor SNR para cada modo
-        # O modo com a maior SNR será selecionado
+        #Removes repeat modes
+        OSNR.remove_repeat_modes()       
+        #Select the mode with the largest SNR
         best_snr = OSNR.calc_best_mode()
-        #encontra o maior sub_img para o modo selecionado        
+        #Seeks for the largest allowd sub-image option    
         OSNR.find_sub_img_best_mode()        
-        #printa na tela o melhor modo
+        #Prints the best mode
         OSNR.print_best_mode()
         
         if 's' in self.export_arq:
-           OSNR.export_optimal_setup(self.img_directory, self.file_base_name, self.star_radius, self.obj_coords)
+           OSNR.export_optimal_setup(self.img_dir, self.file_base_name, self.star_radius, self.obj_coords)
 
         
-##        #cria o dominio da funcao de interesse
-##        OSNR.create_space(allow_every_mode = 'n')        
-##        #imprime a lista filtrada dos modos de operação. Não deve aparecer modo redundante para o caso do SNR
-##        OSNR.print_filtered_list_of_modes(),exit()
-##        #executa o metodo de otimizacao bayesiano        
-##        OSNR.run_bayesian_opt(max_evals=self.max_evals, algorithm = self.algorithm)        
+  
 ##        if 's' in self.export_loss:            
 ##            OSNR.creat_log_parameters(self.img_directory, self.file_base_name)        
 ##        if 's' in self.export_bias:
@@ -183,7 +169,7 @@ class Optimize_Operation_Mode:
 
 
 
-    def Optimize_FA_provided_SNR(self):
+    def Optimize_FA(self):
         repeat = True
         fa_target = self.acq_rate
         while repeat == True:  
