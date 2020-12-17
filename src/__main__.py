@@ -16,19 +16,15 @@ import os
 
 img_dir =r'C:\Users\denis\Desktop\UNIFEI\Projeto_Mestrado\Testes do codigo'
 
-#Cria a classe que otimiza o modo de operação
+#Create the optimization class
 OOM = oom.Optimize_Operation_Mode(img_dir, algorithm = tpe.suggest)
-#verifica se os modos fornecidos de sub_img e binning estao corretos
+#Check the provided sub-image and binning modes
 OOM.verify_provides_modes()
-#Esta opção serve para o cálculo do fluxo da estrela
+#Calculate the star flux
 OOM.calc_star_flux()
 #Optimize(1-SNR, 2-FA, 3-Ambos)
-OOM.optimize(3)
+#OOM.optimize(3)
 
-#OOM.create_space_of_states_provided_FA()
-#OOM.create_space_of_states_with_all_modes()
-#OOM.get_mean_radom_SNR()
-#OOM.get_mean_radom_FA()
-#OOM.get_mean_random_SNR_FA()
+
 
 
