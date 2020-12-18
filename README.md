@@ -10,7 +10,9 @@ This section presents the software developed to implemente the OMASS4. This soft
 
 The performance of the EM mode is better than the conventional mode until a max value of 100 photons per pixel. So, the t<sub>exp</sub> of each EM mode is limited to accomplish this requirement. Also, the maximum value allowed for the G<sub>em</sub> is 300x. Values larger than 300x would deteriorate the device. Furthermore, the G<sub>em</sub> must be such that the CCD will not saturate. For this reason, the maximum EM gain allowed was arbitrarily configured to provide a signal up to 80 \% of the pixel well depth. For an image with 16 bits per pixel, this value is 2<sup>16</sup> \times 0.8 = 52429 analogical to digital unit (ADU). Given that a pixel value is composed by the star, sky and, dark current signals, and the bias level, the maximum value for the G<sub>em</sub> is
 
+
 ![imagem](https://latex.codecogs.com/svg.latex?G_%7B%5Crm%20em%7D%20%3D%20%5Cfrac%7B%2852429%20-%20B%29%20%5Ctimes%20G%7D%7B%28S/n_%7B%5Crm%20p%7D%20&plus;%20S_%7B%5Crm%20sky%7D%20&plus;%20S_%7B%5Crm%20dc%7D%29%7D.)
+
 
 The AR package operation is based on the characterization presented of the CCDs presented by [Bernardes, D. V. (2020)](https://repositorio.unifei.edu.br/jspui/handle/123456789/2201). For each mode, the AR value will be calculated through interpolation if t<sub>exp</sub> < t<sub>c</sub>, and it is the inverse of the t<sub>exp</sub>, if t<sub>exp</sub> equals or greater than t<sub>c</sub>, where the t<sub>c</sub> is the time spent by the camera to read one image, as a function of the CCD operation mode.
 
