@@ -56,7 +56,7 @@ pip install <package_name>
 ```
 
 ### Installing
-Clone this repo using ``` git clone https://github.com/DBernardes/Artificial-Images-Generator.git ```
+Clone this repo using ``` git clone https://github.com/DBernardes/OMASS4.git ```
 
 ## Running the tests
 
