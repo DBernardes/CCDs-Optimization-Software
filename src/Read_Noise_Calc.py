@@ -1,11 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-#Este codigo cotem a classe ReadNoiseCalc que calcula
-#o valor do ruido de leitura para a camera CCD iXon Ultra EMCCD
-#em funcao do modo de operacao. O calculo e realizado
-#com base nos dados das caracterizacoes da camera e estruturados
-#em planilhas excel.
 #Denis Varise Bernardes.
 #08/10/2019.
 
@@ -20,7 +14,7 @@ class ReadNoiseCalc:
         self.noise = 0
 
     def write_operation_mode(self, em_mode, em_gain, hss, preamp, binn):
-        # Foi feito um ajuste por causa da funcao Bayesian OPT
+        #Write the operation mode to the class
         self.em_mode = em_mode
         self.em_gain = em_gain
         self.hss = hss
@@ -34,27 +28,22 @@ class ReadNoiseCalc:
         print('hss = ',self.hss)
         print('preamp = ',self.preamp)
         print('binn = ',self.binn)
-    
-            
-    def read_tab_return_column(self, tab_name, column_name):        
-        df = pd.read_excel(tab_name) 
-        columns = pd.DataFrame(df)
-        return columns[column_name]
+                  
 
 
     def calc_read_noise(self):
-        #Para o modo convencional, retorna o valor da tabela
-        #Para o modo EM, calcula em funcao do ganho_em
+        #For the conventional mode, it is returned the table's read noise  value       
         if self.em_mode == 0:
             self.calc_read_noise_conventional()
+        #Para o modo EM, calcula em funcao do ganho_em
         if self.em_mode == 1:
             self.calc_read_noise_em()
        
 
 
     def calc_read_noise_conventional(self):
-        #O modo de operacao determina a posicao da tabela
-        # que sera lido o valor do read noise
+        #Based on the operation mode, this function selects the
+        #respective read noise value
         indice_tab = 0
         if self.hss == 1: 
             if self.preamp == 1:
@@ -78,24 +67,25 @@ class ReadNoiseCalc:
                     indice_tab = 23
                 if self.binn == 2:
                     indice_tab = 24
-        
-        column_noise = self.read_tab_return_column('Spreadsheets/Tabelas_Valores_Ruido_Leitura.xlsm', 'Noise')
+        #Reads the spreadsheet
+        df = pd.read_excel('Spreadsheets/Read_Noise_Values.xlsm') 
+        columns = pd.DataFrame(df)
+        column_noise = columns('Noise')
         self.noise = column_noise[indice_tab]      
     
 
     def calc_read_noise_em(self):
-        #Eh realizada uma interpolacao do valor do ruido de leitura em funcao do ganho_em
-        #A planilha eh escolhida em funcao do modo de operacao
+        #This funciton calculates the read noise for a given value of the EM gain      
         hss = self.hss
-##        if self.hss == 30: hss = 1
-##        if self.hss == 20: hss = 10
-##        if self.hss == 10: hss = 20
-##        if self.hss == 1: hss = 30       
-        
-        tab_name = 'Spreadsheets/RN_PA' + str(int(self.preamp)) + 'B' + str(int(self.binn)) + 'HSS' + str(int(hss)) + '.xlsm'           
-        column_noise = self.read_tab_return_column(tab_name, 'Noise (e-)')[0:11]
-        column_em_gain = self.read_tab_return_column(tab_name, 'EM Gain')[0:11]
+        #Reads the spreadsheet
+        tab_name = 'Spreadsheets/RN_PA' + str(int(self.preamp)) + 'B' + str(int(self.binn)) + 'HSS' + str(int(hss)) + '.xlsm'
+        df = pd.read_excel(tab_name) 
+        columns = pd.DataFrame(df)
+        column_noise = columns['Noise (e-)'][0:11]
+        column_em_gain = columns['EM Gain'][0:11]
+        #It is done an interpolation for the read noise and EM gain values found in the spreadsheet.
         f = interp1d(column_em_gain, column_noise)
+        #Calculates the read noise
         self.noise = f(self.em_gain)    
         
 

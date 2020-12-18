@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-# Este código para a determinacao do
-# modo de operacao de uma camera iXon Ultra 888 que otimize o ruido
-# de leitura, a taxa de aquisicao, ou ambos.
-
 #25/10/2019. Denis Varise Bernardes.
 
 
@@ -15,7 +10,6 @@ import os
 
 
 img_dir =r'C:\Users\denis\Desktop\UNIFEI\Projeto_Mestrado\Testes do codigo'
-
 #Create the optimization class
 OOM = oom.Optimize_Operation_Mode(img_dir, algorithm = tpe.suggest)
 #Check the provided sub-image and binning modes

@@ -1,14 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-# Classe OptimizeAcquisitionRate criada para determinar os modos de opercao que atendem ao
-# requisito cientifico da frequencia de aquisicao da camera iXon Ultra 888. Este codigo
-# utiliza da biblioteca Acquisition_Rate_Calculation_Bib para retornar o valor da
-# frequencia de aquisicao para um dado modo e, entao, decide se este modo pode ser
-# utilizado. Os modos selecionado sao escritos dentro da classe Modos_Operacao_Bib
-# e, entao, esta classe eh passada para a rotina de determinacao do modo de operacao
-# do ruido otimo.
-
 #24/10/2019. Denis Varise Bernardes.
 
 import Modos_Operacao_Bib as MOB
@@ -162,10 +153,11 @@ class OptimizeAcquisitionRate:
         dic['bin'] = self.best_mode['binn']
         dic['sub_img'] = self.best_mode['sub_img']
         dic['output'] = float(self.best_mode['max_acq_rate'])
-        dic['obs_type'] = 'object'
+        dic['obs_type'] = 'object'        
         dic['img_name'] = file_base_name + '_OPTMODE.fits'
         dic['star_radius'] = star_radius
-        dic['obj_coords'] = '(%i,%i)'%(obj_coords[0],obj_coords[1])        
+        try: dic['obj_coords'] = '(%i,%i)'%(obj_coords[0],obj_coords[1])
+        except:1
         dic['FA'] = FA        
         
         file_name = img_directory + file_base_name + '_OPTSETUP.txt'

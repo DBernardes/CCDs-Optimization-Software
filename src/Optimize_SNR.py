@@ -408,7 +408,8 @@ class OptSignalNoiseRation:
         dic['obs_type'] = 'object'
         dic['img_name'] = file_base_name + '_OPTMODE.fits'
         dic['star_radius'] = star_radius
-        dic['obj_coords'] = '(%i,%i)'%(obj_coords[0], obj_coords[1])
+        try: dic['obj_coords'] = '(%i,%i)'%(obj_coords[0], obj_coords[1])
+        except:1
         dic['kinetic_series_length'] = 1
         
         file_name = img_directory + file_base_name + '_OPTSETUP.txt'

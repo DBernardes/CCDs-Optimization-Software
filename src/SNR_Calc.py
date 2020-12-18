@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-#Esta biblioteca determina os modos de operacao do CCD que atendem ao SNR fornecido
 #Denis Varise Bernardes.
 #26/11/2019.
 
@@ -39,7 +37,7 @@ class SignalToNoiseRatioCalc:
 
 
     def calc_SNR(self):
-        #Esta funcao calcula o SNR da estrela
+        #This function calculates the SNR of the star
         t_exp = self.t_exp  
         em_gain = self.em_gain
         n_pix = self.n_pix_star
@@ -49,17 +47,15 @@ class SignalToNoiseRatioCalc:
         star = self.star_flux
         sky = self.sky_flux
         nf = self.noise_factor
-        #print(star, t_exp, nf, n_pix, rn, em_gain, sky ,dc)
+        
         aux = np.sqrt(star * t_exp * nf**2 + n_pix * ( (rn/em_gain/binn)**2 + (sky + dc)*t_exp * nf**2))        
         self.SNR = (star*t_exp) / aux
-        #print(self.SNR),exit()
-
-
-    #Esta função calcula o texp mínimo para uma dada SNR.
-    #Na equação do SNR, isolei o texp, encontrando uma equação quadrática.
-    #Calculo os termos a,b e c desta equação e, com isso, calculo suas raízes.
-    #O texp será o valor mínimo não negativo encontrado.
-    def calc_minimun_texp_provided_SNR(self, snr):               
+    
+    
+    
+    def calc_minimun_texp_provided_SNR(self, snr):
+        #This function calculates the minimum exposure time needed
+        #to achieve a provided value of SNR
         em_gain = self.em_gain
         n_pix = self.n_pix_star
         dc = self.dark_noise
@@ -68,11 +64,15 @@ class SignalToNoiseRatioCalc:
         sky = self.sky_flux
         nf = self.noise_factor
         binn = self.binn
-        
+
+        #equation: a * texp^2 - b* texp - c
+        #This equation was obtained by isolating the exposure time in the SNR equation
         a = star**2
         b = snr**2 * nf**2 * (star+n_pix*(sky+dc))
-        c = snr**2*n_pix*(rn/em_gain/binn)**2        
-        minimun_t_exps = self.calc_quadratic_equation(a, -b, -c)       
+        c = snr**2*n_pix*(rn/em_gain/binn)**2
+        #Calculates the roots of the equation
+        minimun_t_exps = self.calc_quadratic_equation(a, -b, -c)
+        #Then, it is selected the minimum non negative exposure time
         for t_exp in minimun_t_exps:
             if t_exp <= 0: minimun_t_exps.remove(t_exp)        
         return min(minimun_t_exps)
@@ -80,6 +80,7 @@ class SignalToNoiseRatioCalc:
         
 
     def calc_quadratic_equation(self, a, b, c):
+        #Calculates the roots of a quadratic equaiton
         delta = (b**2) - (4*a*c)
         x1 = (-b-sqrt(delta))/(2*a)
         x2 = (-b+sqrt(delta))/(2*a)
@@ -88,9 +89,10 @@ class SignalToNoiseRatioCalc:
 
 
     def calc_DC(self):
-        T = self.ccd_temp
-        #equacao tirada do artigo de caract. dos CCDs
-        # é calculado o dark noise direto da dark current obtida
+        #Calculates the dark current based ib the CCD temperature.
+        #These used equations model the dark current of the SPARC4 CCDs,
+        #and can be found in: D V Bernardes et al 2018 PASP 130 095002
+        T = self.ccd_temp        
         if self.serial_number == 9914:
             self.dark_noise = 24.66*exp(0.0015*T**2+0.29*T) 
         if self.serial_number == 9915:
@@ -104,9 +106,8 @@ class SignalToNoiseRatioCalc:
 
 
     def calc_RN(self):
-        #calcula o RN utilizando a biblioteca desenvolvida        
-        RN = RNC.ReadNoiseCalc()
-        #print(self.em_mode, self.em_gain, self.hss, self.preamp, self.binn)
+        #Calculates the read noise by using the read noise library  
+        RN = RNC.ReadNoiseCalc()        
         RN.write_operation_mode(self.em_mode, self.em_gain, self.hss, self.preamp, self.binn)
         RN.calc_read_noise()        
         self.read_noise =  float(RN.noise)
@@ -115,8 +116,7 @@ class SignalToNoiseRatioCalc:
 
 
     def set_gain_value(self):
-        #Configura o valor com ganho e-/ADU
-        #do preamp com base no modo de operação
+        #Sets the CCD gain
         em_mode = self.em_mode
         hss = self.hss
         preamp = self.preamp        

@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-# Esta biblioteca gerencia o processo de otimização dos modos de
-# operação dos CCDs. 
-
 #10/01/2020. Denis Varise Bernardes.
 
 import Optimize_SNR as osnr
@@ -158,7 +154,7 @@ class Optimize_Operation_Mode:
         #Prints the best mode
         OSNR.print_best_mode()
         #Exports the optimum mode to an external .txt file
-        if 's' in self.export_arq:
+        if 'y' in self.export_arq:
            OSNR.export_optimal_setup(self.img_dir, self.file_base_name, self.star_radius, self.obj_coords) 
 
   
@@ -207,7 +203,7 @@ class Optimize_Operation_Mode:
             print('\nUsed FA= ', round(self.acq_rate,2), 'Hz')
             print('It was not possible to reach the desirable FA')
         #Exports the optimum mode to an external .txt file
-        if 's' in self.export_arq:
+        if 'y' in self.export_arq:
            OAR.export_optimal_setup(self.img_dir, self.file_base_name, self.star_radius, self.obj_coords, self.acq_rate)
        
 
@@ -261,9 +257,9 @@ class Optimize_Operation_Mode:
         #Calculates the mean and standard deviation of the SNR and acquisition rate.
         #However, it can happen that the SNR is not reached if the chosen texp and em_gain are very small.
         #In these cases, the function discards the respective value
-        OSNRAR.SNR_FA_ranges(allow_every_mode = 'n')        
+        OSNRAR.SNR_FA_ranges()        
         #Creates the space of states in the hyperopt library format
-        OSNRAR.create_space(allow_every_mode = 'n')       
+        OSNRAR.create_space()       
         #Runs the optimzation
         OSNRAR.run_bayesian_opt(max_evals=self.max_evals, algorithm = self.algorithm)
         #Prints the best mode on the screen
@@ -273,10 +269,10 @@ class Optimize_Operation_Mode:
             print('It was not possible to reach the desirable SNR')
 
         #Exports the optimzation iterations to a .txt file
-        if 's' in self.export_loss:            
+        if 'y' in self.export_loss:            
             OSNRAR.creat_log_parameters(self.img_dir, self.file_base_name)
         #Exports the optimal mode to a .txt file
-        if 's' in self.export_arq:
+        if 'y' in self.export_arq:
             OSNRAR.export_optimal_setup(self.img_dir, self.file_base_name, self.star_radius, self.obj_coords, self.snr)
         
 

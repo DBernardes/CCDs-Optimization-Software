@@ -1,10 +1,5 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-#Classe OptSNRAR criada para a otimizacao da relacao sinal-ruído e da frequência de aquisição da camera iXon Ultra
-#888 atraves da biblioteca hyperopt. Sera usada a classe SNRCalc e ARCalc
-#para fornecer o valor do SNR e da FA para cada modo
-#de operacao da camera avaliado.
 #Denis Varise Bernardes.
 #15/01/2020.
 
@@ -206,7 +201,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
             print(modo)  
 
 
-    def SNR_FA_ranges(self, allow_every_mode):
+    def SNR_FA_ranges(self):
         #This function calculates hte minimum and maximum values of the
         #SNR and the AR for the normalization of the cost function.
 
@@ -242,7 +237,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
     
 
     
-    def calc_max_em_gain(self, max_t_exp, min_t_exp, allow_every_mode = 'n'):
+    def calc_max_em_gain(self, max_t_exp, min_t_exp):
         #Calculation of the maximum EM gain allowed as a function of the CCD operating mode.
         #This calculation takes into account the maximum amount of 100 photons per pixel for which
         #the EM mode is better than the Conventional one.     
@@ -254,6 +249,9 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         max_fotons = 100
         bias = self.bias_level
         max_ADU = (2**16)*0.8
+
+        aux = (sky_flux + star_flux/n_pix + dn) * max_t_exp / gain     
+        max_em_gain = (max_ADU - bias)/aux
         
         #if the photons/pix ir bigger than 100 photons, it is calculated the EM gain and the
         #exposure time values that accomplish this limit
@@ -452,6 +450,11 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
 
 
     def create_bias_list(self, path, file_base_name):
+        #This function creates a list of bias images with the same operation mode
+        #used in the hyperopt trials. This list is created to be used
+        #in an automatic image acquisition software.
+        #This function works by reading the written modes by the creat_log_parameters() function,
+        #and replacing the exposure time value by 0.00001 s.
         arq = open(path + file_base_name + '_LOG.txt', 'r')
         lines = arq.read().splitlines()
         arq.close()
@@ -466,23 +469,17 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         arq.close()        
 
 
-    def creat_log_loss(self, path):           
-        arq = open(path + 'log', 'w')        
-        for x in self.tpe_trials.results:
-            arq.write(str(-x['loss']))
-            arq.write('\n')
-        arq.write('Best SNR: %.2f'%(self.best_mode['SNR*FA']))
-        arq.close()
-
 
     def export_optimal_setup(self, img_directory, file_base_name, star_radius, obj_coords, snr_target):
+        #This function exports the optimal mode obtained by the hyperopt library to a .txt file.
         em_mode = self.best_mode['em_mode']
         hss = self.best_mode['hss']
         binn = self.best_mode['binn']
         sub_img = self.best_mode['sub_img']
         t_exp = self.best_mode['t_exp']
         em_gain = self.best_mode['em_gain']
-        preamp = self.best_mode['preamp']        
+        preamp = self.best_mode['preamp']
+        #Start the SNR calculation library
         SNRC = snrc.SignalToNoiseRatioCalc(t_exp,
                                            em_mode,
                                            em_gain,
@@ -498,13 +495,22 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         SNRC.calc_RN()
         SNRC.calc_DC()
         SNRC.calc_SNR()
-        snr = SNRC.get_SNR()  
+        #Calculates the SNR value for the respective optimum mode.
+        #This step is needed because it is not possible recover
+        #the maximum SNR used for the normalization
+        snr = SNRC.get_SNR()
+        #Starts the acquisition rate calculation class
         ARC = arc.AcquisitionRateCalc()
         ARC.write_operation_mode(em_mode, hss, binn, sub_img, t_exp)
         ARC.seleciona_t_corte()
+        #Calculates the acquisition rate value.
+        #This step is needed because it is not possible recover
+        #the maximum acquisition rate used for the normalization
         ARC.calc_acquisition_rate()
-        fa = float(ARC.return_acquisition_rate())                
-        dic={}        
+        fa = float(ARC.return_acquisition_rate())
+        
+        dic={}
+        #Creates a dictionary with the optimum mode
         if self.best_mode['em_mode'] == 1:
             dic['em_mode'] = 'EM'            
         else:
@@ -519,7 +525,8 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         dic['obs_type'] = 'object'
         dic['img_name'] = file_base_name + '_OPTMODE.fits'
         dic['star_radius'] = star_radius
-        dic['obj_coords'] = '(%i,%i)'%(obj_coords[0], obj_coords[1])
+        try: dic['obj_coords'] = '(%i,%i)'%(obj_coords[0], obj_coords[1])
+        except:1
         dic['kinetic_series_length'] = 1
         dic['max_snr'] = self.max_snr
         dic['min_snr'] = self.min_snr
@@ -529,6 +536,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         dic['SNR'] = snr
         dic['FA'] = fa        
         file_name = img_directory + file_base_name + '_OPTSETUP.txt'
+        #Write the optimum mode to a .txt file in the json format
         with open(file_name, 'w') as arq:
             json.dump(dic, arq, indent = 4, sort_keys=True)
             arq.close()
