@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# coding: utf-8
+#coding: utf-8
 #Denis Varise Bernardes.
 #12/12/2019.
 
@@ -48,7 +48,7 @@ class OptSignalNoiseRation:
        
         
     def write_mode_to_MOB_class(self, em_mode, em_gain, hss, preamp, binn, sub_img, t_exp):
-        #Write the modes in the class
+        #Write a mode in the list of the modes class
         self.MOB.write_mode(em_mode, em_gain, hss, preamp, binn, sub_img, t_exp)
 
    
@@ -119,7 +119,7 @@ class OptSignalNoiseRation:
             self.dark_noise = 5.92*np.exp(0.0005*T**2+0.18*T)
 
 
-    def calc_max_em_gain(self, max_t_exp, min_t_exp, allow_every_mode = 'n'):
+    def calc_max_em_gain(self, max_t_exp, min_t_exp):
         #Calculation of the maximum EM gain allowed as a function of the CCD operating mode.
         #This calculation takes into account the maximum amount of 100 photons per pixel for which
         #the EM mode is better than the Conventional one.
@@ -134,10 +134,14 @@ class OptSignalNoiseRation:
         
         aux = (sky_flux + star_flux/n_pix + dn) * max_t_exp / gain     
         max_em_gain = (max_ADU - bias)/aux
-        
+
+        #if the photons/pix ir bigger than 100 photons, it is calculated the EM gain and the
+        #exposure time values that accomplish this limit
         if aux > max_fotons:
             max_em_gain = (max_ADU - bias)/(max_fotons/gain)
-            max_t_exp = max_fotons/(sky_flux + star_flux/n_pix + dn)        
+            max_t_exp = max_fotons/(sky_flux + star_flux/n_pix + dn)
+        #If the max exposure time found in the previous step is smaller than the min exposure time,
+        #this mode is discarded
         if max_t_exp < min_t_exp:
             max_em_gain = 0
             max_t_exp = 0       
@@ -151,6 +155,8 @@ class OptSignalNoiseRation:
         #For each mode, the maximum allowed EM gain is calculated.
         #This gain is used to calculate the minimum exposure time allowed to reach the SNR.
         #The selected modes are passed to the MOB object mode list
+
+        #iterates each mode of the list of selected mode
         for mode in self.MOB.get_list_of_modes():            
             em_mode = mode['em_mode']
             hss = mode['hss']
@@ -160,12 +166,17 @@ class OptSignalNoiseRation:
             for preamp in [1,2]:                
                 max_em_gain = 0
                 if em_mode == 1:
-                    self.set_gain(em_mode, hss, preamp)                    
-                    max_em_gain, max_t_exp = self.calc_max_em_gain(mode['max_t_exp'], mode['min_t_exp'])                    
+                    #calculates the CCD gain
+                    self.set_gain(em_mode, hss, preamp)
+                    #calculates the EM gain
+                    max_em_gain, max_t_exp = self.calc_max_em_gain(mode['max_t_exp'], mode['min_t_exp'])
+                    #if the returned EM gain is 0, this mode is discarded
                     if max_em_gain == 0:
                         print('The number of photons per pixel is above 100. This mode was rejected.')                        
-                        continue 
-                    if max_em_gain>300: max_em_gain = 300                
+                        continue
+                    #limits the maximum EM gain to 300x
+                    if max_em_gain > 300: max_em_gain = 300
+                #Starts the SNR library
                 SNRC = snrc.SignalToNoiseRatioCalc(max_t_exp,
                                                    em_mode,
                                                    max_em_gain,
@@ -179,9 +190,12 @@ class OptSignalNoiseRation:
                                                    self.serial_number)
                 SNRC.set_gain_value()
                 SNRC.calc_RN()
-                SNRC.calc_DC()                
+                SNRC.calc_DC()
+                #Calculates the minimum exposure time needed to achieve the provided SNR
                 min_t_exp = SNRC.calc_minimun_texp_provided_SNR(self.snr_target)
-                if min_t_exp < 1e-5: min_t_exp = 1e-5               
+                #limits the minimum exposure time in 0.00001 s
+                if min_t_exp < 1e-5: min_t_exp = 1e-5
+                #Add the selected mode in a new list of modes in the MOB class in the dictionary form
                 if min_t_exp <= max_t_exp:
                     dic = {'em_mode':em_mode,
                            'em_gain':max_em_gain,
@@ -210,7 +224,8 @@ class OptSignalNoiseRation:
 
 
     def remove_repeat_modes(self):
-        #This function eliminates repeated modes, which have the range of values ​​allowed for the overlapping exposure time.
+        #This function eliminates repeated modes
+        #which have overlapping values of exposure time.
         new_list = []
         for i in range(len(self.filtered_list)-1):          
             mode_before = self.filtered_list[i]            
@@ -226,10 +241,12 @@ class OptSignalNoiseRation:
 
 
     def calc_min_snr(self):
-        #This function calculates the maximum and minimum values of the SNR for the selected operation modes.
+        #This function calculates the maximum and minimum
+        #values of the SNR for the selected operation modes.
         max_snr = 0
         min_snr = 1e5
-        best_mode = {}        
+        best_mode = {}
+        #iterates each modes of the list of selected modes
         for mode in self.MOB.get_list_of_modes():            
             em_mode = mode['em_mode']
             hss = mode['hss']
@@ -237,15 +254,22 @@ class OptSignalNoiseRation:
             preamp = mode['preamp']
             min_t_exp = mode['min_t_exp']
             max_em_gain = 0
+            #if the EM mode is conventional, EM gain = 1
             min_em_gain = 1                        
             if mode['em_mode'] == 1:
+                #if the EM mode is EM, EM gain = 2
                 min_em_gain = 2
-                self.set_gain(em_mode, hss, preamp) 
+                #calculates the CCD gain
+                self.set_gain(em_mode, hss, preamp)
+                #Calculates the maximum EM gain
                 max_em_gain, max_t_exp = self.calc_max_em_gain(mode['max_t_exp'], mode['min_t_exp'])
+                #if the returned EM gain is 0, this mode is discarded
                 if max_em_gain == 0:
                     print('The number of photons per pixel is above 100. This mode was rejected.')
                     continue
-                if max_em_gain > 300: max_em_gain = 300                           
+                #limites the EM gain in 300x
+                if max_em_gain > 300: max_em_gain = 300
+            #starts the class of the SNR calculation
             SNRC = snrc.SignalToNoiseRatioCalc(min_t_exp,
                                                em_mode,
                                                max_em_gain,
@@ -261,7 +285,10 @@ class OptSignalNoiseRation:
             SNRC.calc_RN()
             SNRC.calc_DC()
             SNRC.calc_SNR()
+            #Calculates the SNR for the respective mode
             snr = SNRC.get_SNR()
+            #if the obtained SNR value is smaller than the current smalest SNR
+            #this new mode is selected as the new minimum
             if snr < min_snr: min_snr = snr            
         self.best_mode = best_mode        
         return min_snr
@@ -272,7 +299,10 @@ class OptSignalNoiseRation:
         #Calculates the best value of the SNR based on the selected operation modes.
         best_snr = 0
         best_mode = {}
+        #This function eliminates repeated modes
+        #which have overlapping values of exposure time.
         self.remove_repeat_modes()
+        #iterates each modes of the list of selected modes
         for mode in self.filtered_list:            
             em_mode = mode['em_mode']
             hss = mode['hss']
@@ -280,13 +310,18 @@ class OptSignalNoiseRation:
             preamp = mode['preamp']
             max_em_gain = 0
             max_t_exp = mode['max_t_exp']
-            if mode['em_mode'] == 1:                           
-                self.set_gain(em_mode, hss, preamp) 
+            if mode['em_mode'] == 1:
+                #Calculates the CCD gain
+                self.set_gain(em_mode, hss, preamp)
+                #Calculates the maximim EM gain
                 max_em_gain, max_t_exp = self.calc_max_em_gain(mode['max_t_exp'], mode['min_t_exp'])
+                #if the returned EM gain is 0, this mode is discarded
                 if max_em_gain == 0:
                     print('The number of photons per pixel is above 100. This mode was rejected.')
                     continue
-                if max_em_gain > 300: max_em_gain = 300            
+                #limits the maximum EM gain in 300x
+                if max_em_gain > 300: max_em_gain = 300
+            #Starts the class of the SNR calculation
             SNRC = snrc.SignalToNoiseRatioCalc(max_t_exp,
                                                em_mode,
                                                max_em_gain,
@@ -301,7 +336,10 @@ class OptSignalNoiseRation:
             SNRC.calc_RN()
             SNRC.calc_DC()
             SNRC.calc_SNR()
-            snr = SNRC.get_SNR()            
+            #Calculates the maximum SNR
+            snr = SNRC.get_SNR()
+            #If the calculated SNR is greater than the current best SNR,
+            #this mode is selected as the new best mode
             if snr > best_snr:                
                 best_snr = snr
                 best_mode = mode
@@ -354,6 +392,7 @@ class OptSignalNoiseRation:
 
     def export_optimal_setup(self, img_directory, file_base_name, star_radius, obj_coords):
         #This functions exports the obtainde best mode to a .txt file
+        #To acocmplish this, it is used the json format
         dic={}        
         if self.best_mode['em_mode'] == 1:
             dic['em_mode'] = 'EM'            

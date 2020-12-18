@@ -61,11 +61,17 @@ class OptimizeAcquisitionRate:
             if em_mode == 0: vector_hss = [0.1, 1]            
             for hss in vector_hss:
                 for binn in self.vector_binn:
-                    for sub_img in self.vector_sub_img:                    
+                    for sub_img in self.vector_sub_img:
+                        #Starts the class for the acquisition rate calculation
                         self.ARC.write_operation_mode(em_mode, hss, binn, sub_img, self.t_exp)
+                        #Selects the cut-off exposure time
                         self.ARC.seleciona_t_corte()
-                        self.ARC.calc_acquisition_rate()                        
+                        #Calculates tha acquisition rate for the provided mode
+                        self.ARC.calc_acquisition_rate()
+                        #If the acquisition rate is greater than the provided limit,
+                        #this mode is selected
                         if self.ARC.acquisition_rate >= self.acquisition_rate:
+                            #Calculates the maximum exposure time that still acomplish the acquisition rate requirement
                             max_t_exp = self.ARC.calc_texp_provided_acquisition_frequency(self.acquisition_rate)                            
                             self.write_mode_to_MOB_class(em_mode, 0, hss, 0, binn, sub_img, max_t_exp)
 
@@ -73,14 +79,21 @@ class OptimizeAcquisitionRate:
 
     
     def determine_min_acquisition_rate(self):
-        #Given a list of modes, this functions calculates the highest and the smallest acquisition rates
+        #Given a list of modes,
+        #this functions calculates the highest and the smallest acquisition rates
         max_acq_rate = 0
         min_acq_rate = 1e3
-        best_mode = {}        
-        for mode in self.MOB.get_list_of_modes():                      
-            self.ARC.write_operation_mode(mode['em_mode'], mode['hss'], mode['binn'],  mode['sub_img'], mode['max_t_exp']) 
+        best_mode = {}
+        #Iterates each mode of the list of selected modes
+        for mode in self.MOB.get_list_of_modes():
+            #Starts the class for the acquisition rate calculation
+            self.ARC.write_operation_mode(mode['em_mode'], mode['hss'], mode['binn'],  mode['sub_img'], mode['max_t_exp'])
+            #Selects the cut-off exposure time
             self.ARC.seleciona_t_corte()
+            #Calculates tha acquisition rate for the provided mode
             self.ARC.calc_acquisition_rate()
+            #If the acquisition rate is smaller than the current smallest acquisition rate,
+            #this value is selected
             if self.ARC.acquisition_rate < min_acq_rate: min_acq_rate = float(self.ARC.return_acquisition_rate())        
         return min_acq_rate
 
@@ -90,16 +103,23 @@ class OptimizeAcquisitionRate:
     def determine_fastest_operation_mode(self):
         #Given a list of modes, this functions determine the mode with the highest acquisition rate
         max_acq_rate = 0
-        best_mode = {}               
-        for mode in self.MOB.get_list_of_modes():            
-            self.ARC.write_operation_mode(mode['em_mode'], mode['hss'], mode['binn'],  mode['sub_img'], mode['min_t_exp']) 
+        best_mode = {}
+        #Iterates each mode of the list of selected modes
+        for mode in self.MOB.get_list_of_modes():
+            #Starts the class for the acquisition rate calculation
+            self.ARC.write_operation_mode(mode['em_mode'], mode['hss'], mode['binn'],  mode['sub_img'], mode['min_t_exp'])
+            #Selects the cut-off exposure time
             self.ARC.seleciona_t_corte()
-            self.ARC.calc_acquisition_rate()            
+            #Calculates tha acquisition rate for the provided mode
+            self.ARC.calc_acquisition_rate()
+            #If the acquisition rate is greater than the current largest acquisition rate,
+            #this mode is selected
             if self.ARC.acquisition_rate > max_acq_rate:
                 max_acq_rate = float(self.ARC.return_acquisition_rate())
                 self.best_mode = mode    
                 self.best_mode['max_acq_rate'] = max_acq_rate                
-            #These ifs are needed for those cases where there are several sub-images options for the same optimum mode
+            #These ifs are needed for those cases where there are several
+            #sub-images options for the same optimum mode
             if self.ARC.acquisition_rate == max_acq_rate:
                 if mode['hss'] == self.best_mode['hss']:
                     if mode['em_mode'] == self.best_mode['em_mode']:
@@ -129,6 +149,7 @@ class OptimizeAcquisitionRate:
 
     def export_optimal_setup(self, img_directory, file_base_name, star_radius, obj_coords, FA):
         #Exports the best obtained operation mode to a .txt file
+        #To accomplish this, it is used the json format
         dic={}        
         if self.best_mode['em_mode'] == 1:
             dic['em_mode'] = 'EM'            

@@ -64,21 +64,21 @@ class Optimize_Operation_Mode:
        
 
     def verify_provides_modes(self):
-        #Verifies if the provided sub_img and bin modes are allowed
+        #Verifies if the provided sub_img and bin modes are allowed        
         for sub_img in self.sub_img_modes:
             if sub_img not in [1024,512,256]:
-                print('\nModo sub-image inválido! [%i]'%sub_img)                
+                print('\nInvalid sub-image mode! [%i]'%sub_img)                
                 exit()
         for binn in self.binn_modes:
             if binn not in [1,2]:
-                print('\nModo binning inválido! [%i]'%binn)                
+                print('\nInvalid binning mode! [%i]'%binn)                
                 exit()
 
 
 
     def calc_star_flux(self):
         #Select the method for the star flux calculation bases on the information provided to the code.
-        if self.use_pre_img == 's': self.calc_star_sky_flux_from_preimg()
+        if self.use_pre_img == 'y': self.calc_star_sky_flux_from_preimg()
         if self.use_pre_img == 'n': self.calc_star_sky_flux_from_magnitude()
 
         
@@ -128,7 +128,8 @@ class Optimize_Operation_Mode:
         #Starts the object that determines which modes meet the acquisition rate limit.        
         OAR =  oar.OptimizeAcquisitionRate(acquisition_rate = self.acq_rate,
                                            sub_img_modes=self.sub_img_modes,
-                                           binn_modes=self.binn_modes)               
+                                           binn_modes=self.binn_modes)
+        #Determines those modes which accomplish the acquisition rate requirement
         OAR.determine_operation_modes()        
         obj_lista_modos = OAR.read_MOB_obj()
         if obj_lista_modos.get_list_of_modes() == []:
@@ -155,7 +156,8 @@ class Optimize_Operation_Mode:
         #Seeks for the largest allowd sub-image option    
         OSNR.find_sub_img_best_mode()        
         #Prints the best mode
-        OSNR.print_best_mode()        
+        OSNR.print_best_mode()
+        #Exports the optimum mode to an external .txt file
         if 's' in self.export_arq:
            OSNR.export_optimal_setup(self.img_dir, self.file_base_name, self.star_radius, self.obj_coords) 
 
@@ -204,6 +206,7 @@ class Optimize_Operation_Mode:
         if fa_target > self.acq_rate:
             print('\nUsed FA= ', round(self.acq_rate,2), 'Hz')
             print('It was not possible to reach the desirable FA')
+        #Exports the optimum mode to an external .txt file
         if 's' in self.export_arq:
            OAR.export_optimal_setup(self.img_dir, self.file_base_name, self.star_radius, self.obj_coords, self.acq_rate)
        
