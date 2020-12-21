@@ -47,7 +47,9 @@ The minimum t<sub>exp</sub> of the equation above is given by its smallest non-n
 Therefore, the optimum mode for the CCD will be given by the set of parameters obtained through the BOM that maximizes the function given by the equation above. Figure below presents the SNR x AR values obtained as a function of the t<sub>exp</sub>, G<sub>em</sub> and readout rate of the CCD over the BOM iterations. Through this figure, it is possible to see a maximum point for the readout rate of 1 MHz.
 
 <p align="center">
+    
 ![image](https://github.com/DBernardes/OMASS4/blob/main/iteracoes_MOB_ingles.png)
+
 </p>
 
 ## Running the OMASS4
@@ -78,7 +80,7 @@ Clone this repo using ``` git clone https://github.com/DBernardes/OMASS4.git ```
 
 ## Running the tests
 
-To run a simple test, you only need to execute the run.py file and the image would be created in your current directory. The run.py file will provide to the AIG the basic information for its execution,
+To run a simple test, there is an image created artificially in the example directory. If you run the \_\_main\_\_.py file, the OMASS4 will be executed over this image. You can choose between the options to optimize the SNR, the acquisition rate, or both parameters providing the option 1, 2, or 3 for the optimize function, respectively. Also, you can choose to use or not the pre-image available changing the (y/n) parameter in the observation_setup.txt file. When the execution is done, the optimum mode will be printed on the screen, and a .txt file with the resulting information will be created in the image directory.
 ## Authors and Contact
 
 * **Denis Bernardes**: 
