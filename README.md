@@ -44,7 +44,11 @@ The minimum t<sub>exp</sub> of the equation above is given by its smallest non-n
 <img src="https://latex.codecogs.com/svg.latex?f&space;=&space;\frac{{S}_{\rm&space;NR}&space;-&space;{S}^{\rm&space;m}}{{S}^{\rm&space;M}&space;-&space;{S}^{\rm&space;m}}&space;\times&space;\frac{{A}&space;-&space;{A}^{\rm&space;m}}{{A}^{\rm&space;M}&space;-&space;{A}^{\rm&space;m}}." title="f = \frac{{S} - {S}^{\rm m}}{{S}^{\rm M} - {S}^{\rm m}} \times \frac{{A} - {A}^{\rm m}}{{A}^{\rm M} - {A}^{\rm m}}." />
 </p>
 
-Therefore, the optimum mode for the CCD will be given by the set of parameters obtained through the BOM that maximizes the function given by the equation above.
+Therefore, the optimum mode for the CCD will be given by the set of parameters obtained through the BOM that maximizes the function given by the equation above. Figure below presents the SNR x AR values obtained as a function of the t<sub>exp</sub>, G<sub>em</sub> and readout rate of the CCD over the BOM iterations. Through this figure, it is possible to see a maximum point for the readout rate of 1 MHz.
+
+<p align="center">
+![image](https://github.com/DBernardes/OMASS4/blob/main/iteracoes_MOB_ingles.png)
+</p>
 
 ## Running the OMASS4
 
@@ -53,12 +57,15 @@ These instructions will get you a copy of the project up and running on your loc
 ### Prerequisites
 There are some packages that need to be installed before running the software.
 
-* [Astropy](https://www.astropy.org/)
-* [Photutils](https://photutils.readthedocs.io/en/stable/)
-* [Collections](https://docs.python.org/3/library/collections.html)
-* [JSON](https://www.w3schools.com/python/python_json.asp)
-* [Pandas](https://pandas.pydata.org/)
+* [astropy](https://www.astropy.org/)
+* [hyperopt](https://github.com/WillKoehrsen/hyperparameter-optimization)
+* [numpy](https://numpy.org/)
+* [pandas](https://pandas.pydata.org/)
+* [matplotlib](https://matplotlib.org/)
+* [collections](https://docs.python.org/3/library/collections.html)
+* [json](https://www.w3schools.com/python/python_json.asp)
 * [xlrd](https://xlrd.readthedocs.io/en/latest/)
+* [Photutils](https://photutils.readthedocs.io/en/stable/)
 * [Scipy](https://www.scipy.org/)
 
 To install these packages it is suggested to use the pip command as follows
@@ -71,22 +78,7 @@ Clone this repo using ``` git clone https://github.com/DBernardes/OMASS4.git ```
 
 ## Running the tests
 
-To run a simple test, you only need to execute the run.py file and the image would be created in your current directory. The run.py file will provide to the AIG the basic information for its execution, that is the star flux, in photons/s; the sky flux, in photons/pix/s, the standard deviation of the Gaussian, in pixels, and the operation mode of the CCD. In particular, the CCD operation mode should be a python dictionary with the control parameters used to configure the acquisition of the SPARC4 cameras. They are the Electron Multiplying Mode (em_mode), the Electron Multiplying Gain (em_gain), the Pre-amplification (preamp), the Horizontal Shift Speed (hss), the Pixels Binning (bin), and the Exposure Time (texp). Below, it is presented the accepted values for each parameter previously described.
-
-- em_mode: 0 or 1
-- em_gain: from 2 to 300
-- preamp: 1 or 2
-- hss: 0.1, 1, 10, 20, and 30
-- bin: 1 or 2
-- texp: greater or equal than 1e-5
-
-Beyond the paramaters presented before, there are a set of optional paramaters. They are the CCD temperature (ccd_temp), the CCD serial number (serial_number), the image bias level (bias_level), and the directory where the image should be saved (image_dir)
-
-- ccd_temp: from 0 ºC to -70 ºC
-- serial_number: 9914, 9915, 9916, or 9917
-- bias_level: integer and greater or equal than 1
-- image_dir: string
-
+To run a simple test, you only need to execute the run.py file and the image would be created in your current directory. The run.py file will provide to the AIG the basic information for its execution,
 ## Authors and Contact
 
 * **Denis Bernardes**: 
@@ -96,4 +88,5 @@ email: denis.bernardes099@gmail.com
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+
 
