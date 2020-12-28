@@ -29,8 +29,7 @@ class OptSignalNoiseRation:
         self.list_all_modes  = []
         self.filtered_list = []
         self.best_sub_img = []
-        self.new_list = []
-
+        self.new_list = []        
         self.hss = [[],[]]
         self.binn = [[],[]]
         self.sub_img = []        
@@ -302,7 +301,7 @@ class OptSignalNoiseRation:
         #This function eliminates repeated modes
         #which have overlapping values of exposure time.
         self.remove_repeat_modes()
-        #iterates each modes of the list of selected modes
+        #iterates each modes of the list of selected modes        
         for mode in self.filtered_list:            
             em_mode = mode['em_mode']
             hss = mode['hss']
@@ -321,7 +320,7 @@ class OptSignalNoiseRation:
                     continue
                 #limits the maximum EM gain in 300x
                 if max_em_gain > 300: max_em_gain = 300
-            #Starts the class of the SNR calculation
+            #Starts the class of the SNR calculation            
             SNRC = snrc.SignalToNoiseRatioCalc(max_t_exp,
                                                em_mode,
                                                max_em_gain,
@@ -337,7 +336,7 @@ class OptSignalNoiseRation:
             SNRC.calc_DC()
             SNRC.calc_SNR()
             #Calculates the maximum SNR
-            snr = SNRC.get_SNR()
+            snr = SNRC.get_SNR()            
             #If the calculated SNR is greater than the current best SNR,
             #this mode is selected as the new best mode
             if snr > best_snr:                

@@ -1,0 +1,21 @@
+{
+    "FA": 2.3608144211962183,
+    "SNR": 144.37436976334322,
+    "bin": 2,
+    "em_gain": 0,
+    "em_mode": "CONV",
+    "hss": 1,
+    "img_name": "CONV_1MHz_PA1_B1_TEXP20_G1_OPTMODE.fits",
+    "kinetic_series_length": 1,
+    "max_fa": 4.632915448465882,
+    "max_snr": 226.07825653132048,
+    "min_fa": 1.0,
+    "min_snr": 99.99999999999999,
+    "obs_type": "object",
+    "output": 0.13183648520830935,
+    "preamp": 2,
+    "snr_target": 100.0,
+    "star_radius": 0,
+    "sub_img": 512,
+    "t_exp": 0.4235826378480451
+}

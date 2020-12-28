@@ -6,10 +6,11 @@
 from sys import exit
 import Optimize_Operation_Mode as oom
 from hyperopt import tpe, rand
+from pathlib import Path
 import os
 
 
-img_dir =r'C:\Users\denis\Desktop\UNIFEI\Projeto_Mestrado\Testes do codigo'
+img_dir = os.path.dirname(os.getcwd()) + '\example\\'
 #Create the optimization class
 OOM = oom.Optimize_Operation_Mode(img_dir, algorithm = tpe.suggest)
 #Check the provided sub-image and binning modes

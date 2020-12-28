@@ -1,0 +1,26 @@
+File with the observation setup to be used in optimization.
+-------------------------------------------------------------
+
+Signal-to-Noise ratio = 100
+Acquisition rate (Hz) = 1
+Object magnitude = 12.25 
+Sub-image modes = 1024,512,256
+Binning modes = 1,2
+CCD serial number = 9917
+CCD temperature (oC) = -70 
+Iterations number of the optimization = 50
+Experiment name = CONV_1MHz_PA1_B1_TEXP20_G1
+Export the opt mode to a txt file (y/n) = y
+Export the list of the iterations (y/n) = y
+Export the list of the bias images (y/n) = n
+
+
+
+Pre-image configuration
+----------------------------
+Use a pre-image (y/n) = n
+Image name = CONV_1MHz_PA1_B1_TEXP20_G1.fits
+Object coordinates (x,y) = 100,100
+Bias image name = CONV_1MHz_PA1_B1_TEXP20_G1_BIAS
+Maximum sky radius = 20
+        

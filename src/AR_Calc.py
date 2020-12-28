@@ -185,7 +185,7 @@ class AcquisitionRateCalc:
         acq_rate = target_acquisition_rate 
         freq_corte = 1/self.t_corte        
         if acq_rate <= freq_corte:
-            self.max_t_exp = 1/acq_freq
+            self.max_t_exp = 1/acq_rate
         if acq_rate > freq_corte:            
             #Name of the spreadsheet with the texp vs acquisition rate curve
             tab_name = self.define_acq_rate_tab_name()
@@ -201,7 +201,7 @@ class AcquisitionRateCalc:
             #Calculates the exposure time given the acquisition rate         
             f = interp1d(acq_rate_column, t_exp_column)
             #Calculates the exposure time
-            self.max_t_exp = float(f(acq_freq))            
+            self.max_t_exp = float(f(acq_rate))            
         return self.max_t_exp
 
 

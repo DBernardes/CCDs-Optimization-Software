@@ -21,7 +21,7 @@ class SignalToNoiseRatioCalc:
         self.binn = binn
         self.ccd_temp = ccd_temp
         self.sky_flux = sky_flux
-        self.star_flux = star_flux
+        self.star_flux = star_flux        
         self.n_pix_star = n_pix_star
         self.serial_number = serial_number
         
@@ -47,9 +47,10 @@ class SignalToNoiseRatioCalc:
         star = self.star_flux
         sky = self.sky_flux
         nf = self.noise_factor
+
         
         aux = np.sqrt(star * t_exp * nf**2 + n_pix * ( (rn/em_gain/binn)**2 + (sky + dc)*t_exp * nf**2))        
-        self.SNR = (star*t_exp) / aux
+        self.SNR = (star*t_exp) / aux        
     
     
     

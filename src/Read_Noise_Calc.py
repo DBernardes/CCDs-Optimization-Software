@@ -70,7 +70,7 @@ class ReadNoiseCalc:
         #Reads the spreadsheet
         df = pd.read_excel('Spreadsheets/Read_Noise_Values.xlsm') 
         columns = pd.DataFrame(df)
-        column_noise = columns('Noise')
+        column_noise = columns['Noise']
         self.noise = column_noise[indice_tab]      
     
 
