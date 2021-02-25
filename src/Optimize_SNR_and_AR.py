@@ -515,7 +515,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
             dic['em_mode'] = 'EM'            
         else:
             dic['em_mode'] = 'CONV'
-        dic['em_gain'] = self.best_mode['em_gain']
+        dic['em_gain'] = int(self.best_mode['em_gain'])
         dic['t_exp'] = self.best_mode['t_exp']
         dic['hss'] = self.best_mode['hss']
         dic['preamp'] = self.best_mode['preamp']
@@ -536,7 +536,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         dic['SNR'] = snr
         dic['FA'] = fa        
         file_name = img_directory + file_base_name + '_OPTSETUP.txt'
-        #Write the optimum mode to a .txt file in the json format
+        #Write the optimum mode to a .txt file in the json format        
         with open(file_name, 'w') as arq:
             json.dump(dic, arq, indent = 4, sort_keys=True)
             arq.close()

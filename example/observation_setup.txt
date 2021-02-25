@@ -18,7 +18,7 @@ Export the list of the bias images (y/n) = n
 
 Pre-image configuration
 ----------------------------
-Use a pre-image (y/n) = n
+Use a pre-image (y/n) = y
 Image name = CONV_1MHz_PA1_B1_TEXP20_G1.fits
 Object coordinates (x,y) = 100,100
 Bias image name = CONV_1MHz_PA1_B1_TEXP20_G1_BIAS
