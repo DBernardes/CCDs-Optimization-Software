@@ -32,7 +32,7 @@ class OptimizeAcquisitionRate:
     def print_MOB_list(self):
         # Prints the list of the available modes in the class
         lista = self.MOB.get_list_of_modes()
-        for modo in lista:s
+        for modo in lista:
             print(modo)
 
     def write_MOB_obj(self, obj):

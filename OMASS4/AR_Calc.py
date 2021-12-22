@@ -4,6 +4,7 @@
 # 08/10/2019.
 
 import math
+import os
 from sys import exit
 
 import numpy as np
@@ -15,7 +16,9 @@ class AcquisitionRateCalc:
     def __init__(self):
         self.acquisition_rate = 0
         self.t_corte = 0
-        self.tab_valores_readout = "Spreadsheets/Readout_Values.xlsm"
+        self.tab_valores_readout = os.path.join(
+            "OMASS4", "Spreadsheets", "read_noise", "Readout_Values.csv"
+        )
         self.max_t_exp = 0
 
     def write_operation_mode(self, em_mode, hss, binn, sub_img, t_exp):
@@ -33,7 +36,9 @@ class AcquisitionRateCalc:
             tab_name += "01"
         else:
             tab_name += str(self.hss)
-        return "Spreadsheets/" + tab_name + ".xlsm"
+        return os.path.join(
+            "OMASS4", "Spreadsheets", "acquisition_rate", tab_name + ".csv"
+        )
 
     def calc_acquisition_rate_texp_greater_tcorte(self):
         # If the exposure time ir greater than the critial redout time,
@@ -46,8 +51,7 @@ class AcquisitionRateCalc:
 
         # Reads the spreadsheet
         tab_name = self.define_acq_rate_tab_name()
-        df = pd.read_excel(tab_name)
-        columns = pd.DataFrame(df)
+        columns = pd.read_csv(tab_name, dtype=np.float64)
 
         # Get the column with the exposure times
         t_exp_column = columns["TEXP (s)"]
@@ -157,12 +161,11 @@ class AcquisitionRateCalc:
                 if self.binn == 1:
                     indice_tab_t_corte = 30
         # Reads the spreadsheet
-        df = pd.read_excel(self.tab_valores_readout)
-        columns = pd.DataFrame(df)
+        columns = pd.read_csv(self.tab_valores_readout)
         # Get the readout values
-        readout_times = columns["Tempo critico"][1:31]
+        readout_times = [float(value) for value in columns["Tempo critico"][1:]]
         # Select the readout value based on the index obtained in previous step.
-        self.t_corte = readout_times[indice_tab_t_corte]
+        self.t_corte = readout_times[indice_tab_t_corte - 1]
 
     def calc_acquisition_rate(self):
         # For t_exp < t_c: interpolates the spreadsheet data
@@ -182,8 +185,7 @@ class AcquisitionRateCalc:
             # Name of the spreadsheet with the texp vs acquisition rate curve
             tab_name = self.define_acq_rate_tab_name()
             # Reads the spreadsheet
-            df = pd.read_excel(tab_name)
-            columns = pd.DataFrame(df)
+            columns = pd.read_csv(tab_name, dtype=np.float64)
             # Get the exposure time column
             t_exp_column = columns["TEXP (s)"]
             t_exp_column = self.filter_list(t_exp_column)

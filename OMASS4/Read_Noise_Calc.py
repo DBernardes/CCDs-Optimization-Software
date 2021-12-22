@@ -3,6 +3,10 @@
 # Denis Varise Bernardes.
 # 08/10/2019.
 
+import os
+from ntpath import join
+from sys import path
+
 import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
@@ -62,7 +66,11 @@ class ReadNoiseCalc:
                 if self.binn == 2:
                     indice_tab = 24
         # Reads the spreadsheet
-        df = pd.read_excel("Spreadsheets/Read_Noise_Values.xlsm")
+        df = pd.read_csv(
+            os.path.join(
+                "OMASS4", "Spreadsheets", "read_noise", "Read_Noise_Values.csv"
+            )
+        )
         columns = pd.DataFrame(df)
         column_noise = columns["Noise"]
         self.noise = column_noise[indice_tab]
@@ -72,18 +80,18 @@ class ReadNoiseCalc:
         hss = self.hss
         # Reads the spreadsheet
         tab_name = (
-            "Spreadsheets/RN_PA"
+            os.path.join("OMASS4", "Spreadsheets", "read_noise", "RN_PA")
             + str(int(self.preamp))
             + "B"
             + str(int(self.binn))
             + "HSS"
             + str(int(hss))
-            + ".xlsm"
+            + ".csv"
         )
-        df = pd.read_excel(tab_name)
-        columns = pd.DataFrame(df)
-        column_noise = columns["Noise (e-)"][0:11]
-        column_em_gain = columns["EM Gain"][0:11]
+
+        columns = pd.read_csv(tab_name, dtype=np.float64)
+        column_noise = columns["Noise (e-)"]
+        column_em_gain = columns["EM Gain"]
         # It is done an interpolation for the read noise and EM gain values found in the spreadsheet.
         f = interp1d(column_em_gain, column_noise)
         # Calculates the read noise
