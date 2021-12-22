@@ -15,6 +15,7 @@ The software to implement the OMASS4 was developed using Python Language 3.7.4 t
 The performance of the EM mode is better than the conventional mode until a max value of 100 photons per pixel. So, the t<sub>exp</sub> of each EM mode is limited to accomplish this requirement. Also, the maximum value allowed for the amplification EM gain :math:`G_{em}` is 300x. Values larger than 300x would deteriorate the device. Furthermore, the :math:`G_{em}` must be such that the CCD will not saturate. For this reason, the maximum EM gain allowed was arbitrarily configured to provide a signal up to 80 % of the pixel well depth. For an image with 16 bits per pixel, this value is :math:`2^{16} \times 0.8 = 52429` analogical to digital unit (ADU). Given that a pixel value is composed by the star, sky and, dark current signals, and the bias level, the maximum value for the :math:`G_{em}` is
 
 .. image:: Images/em_gain.png  
+  :align: center
   :width: 200
   
 
@@ -29,11 +30,13 @@ Therefore, the OMASS4 was implemented using the aforementioned packages, being a
 * Mode 2: in this mode, the AR is optimized, keeping the SNR fixed. Initially, for each mode, it is calculated the minimum :math:`t_{exp}` value that accomplish the SNR requirement, for the maximum :math:`G_{em}` allowed. For this calculation, it is considered the values of the star flux s = S/:math:`t_{exp}` in photons/s, the sky flux :math:`s_{sky} = S_{sky}/t_{exp}`, in photons/pixel/s, and the dark current :math:`s_{dc} = S_{dc}/t_{exp}`, in e-/pixel/s. So, the equation for the SNR of the star can be written as follows
 
 .. image:: Images/snr.png
+  :align: center
   :width: 400    
     
 where :math:`\sigma_{ADU}` represents the counts' distribution of the acquired image. :math:`N_{f}` is the noise factor and represents and extra noise added to the image because of the use of the EM amplifier. For an Andor EMCCD, :math:`N_{f}` = 1.41. Rearranging the terms of the equation above and isolating :math:`t_{exp}`,
     
 .. image:: Images/quadratic_equation_snr.png
+  :align: center
   :width: 500
 
     
@@ -43,11 +46,13 @@ The minimum :math:`t_{exp}` of the equation above is given by its smallest non-n
 
 
 .. image:: Images/objective_function.png
+  :align: center
   :width: 200
 
 Therefore, the optimum mode for the CCD will be given by the set of parameters obtained through the BOM that maximizes the function given by the equation above. Figure below presents the SNR x AR values obtained as a function of the t<sub>exp</sub>, G<sub>em</sub> and readout rate of the CCD over the BOM iterations. Through this figure, it is possible to see a maximum point for the readout rate of 1 MHz.
 
 .. image:: Images/iterations_OMASS4.png
+  :align: center
   :width: 400
   :alt: Output iterations after the execution of the OMASS4
 
