@@ -14,8 +14,9 @@ The software to implement the OMASS4 was developed using Python Language 3.7.4 t
 
 The performance of the EM mode is better than the conventional mode until a max value of 100 photons per pixel. So, the t<sub>exp</sub> of each EM mode is limited to accomplish this requirement. Also, the maximum value allowed for the amplification EM gain :math:`G_{em}` is 300x. Values larger than 300x would deteriorate the device. Furthermore, the :math:`G_{em}` must be such that the CCD will not saturate. For this reason, the maximum EM gain allowed was arbitrarily configured to provide a signal up to 80 % of the pixel well depth. For an image with 16 bits per pixel, this value is :math:`2^{16} \times 0.8 = 52429` analogical to digital unit (ADU). Given that a pixel value is composed by the star, sky and, dark current signals, and the bias level, the maximum value for the :math:`G_{em}` is
 
-.. math::
-    G_{em} = \frac{(52429 - B) \times G}{S/n_p + S_{sky} + S_{dc}}
+.. image:: Images/em_gain.png  
+  :width: 200
+  
 
 where S, :math:`S_{dc}`, and :math:`S_{sky}` represent the photons number of the star, the mean thermoelectrons, and the mean of the photons number of the sky for the acquired image, respectively;:math:`n_{p}` is the number of pixels considered to calculate the S value, G is the gain of the CCD in e-/ADU, and B is the bias level in ADU. 
 
@@ -27,25 +28,22 @@ Therefore, the OMASS4 was implemented using the aforementioned packages, being a
     
 * Mode 2: in this mode, the AR is optimized, keeping the SNR fixed. Initially, for each mode, it is calculated the minimum :math:`t_{exp}` value that accomplish the SNR requirement, for the maximum :math:`G_{em}` allowed. For this calculation, it is considered the values of the star flux s = S/:math:`t_{exp}` in photons/s, the sky flux :math:`s_{sky} = S_{sky}/t_{exp}`, in photons/pixel/s, and the dark current :math:`s_{dc} = S_{dc}/t_{exp}`, in e-/pixel/s. So, the equation for the SNR of the star can be written as follows
 
-
-.. math::
-    S = \frac{s \times t_{\rm exp}}{\{ s \; t_{\rm exp} \; N_{\rm F}^2 + \\ n_{\rm p} [\ (s_{\rm sky} + s_{\rm dc}) \; t_{\rm exp} \; N_{\rm F}^2 + \\ (\sigma_{\rm ADU} \; G/G_{\rm em})^2 ]\ \}^{1/2}}
-
-    
+.. image:: Images/snr.png
+  :width: 400    
     
 where :math:`\sigma_{ADU}` represents the counts' distribution of the acquired image. :math:`N_{f}` is the noise factor and represents and extra noise added to the image because of the use of the EM amplifier. For an Andor EMCCD, :math:`N_{f}` = 1.41. Rearranging the terms of the equation above and isolating :math:`t_{exp}`,
     
-.. math:: 
-    s^2 \; t_{\rm exp}^2 - S^2 \; N_{\rm F}^2 \; [\ s + n_{\rm p} (s_{\rm sky} + s_{\rm dc}) ]\ \; t_{\rm exp} - S^2 \; n_{\rm p} \; \sigma_{\rm r}^2 = 0
+.. image:: Images/quadratic_equation_snr.png
+  :width: 500
 
     
 The minimum :math:`t_{exp}` of the equation above is given by its smallest non-negative root. Therefore, the optimum mode is given through the calculation of the AR of the selected modes for the minimum :math:`t_{exp}`.
     
 * Mode 3: in this mode, both SNR and AR are optimized. Initially, it is selected those modes which accomplish the SNR and AR at the same time. The resulting list of modes is used to create the space of states of the BOM. Then, it is calculated the maximum values :math:`S^{M}` and :math:`A^{M}` and the minimum values :math:`S^{m}` and :math:`A^{m}` of the SNR and AR, respectively. They are used in normalization of both parameters into the range between 0 and 1. So, the function to be optimized is given by the multiplication of the normalized signal to noise ratio :math:`S_{NR}` and acquisition rate A values for each operation mode:
 
-.. math::
-    f = \frac{{S} - {S}^{\rm m}}{{S}^{\rm M} - {S}^{\rm m}} \times \frac{{A} - {A}^{\rm m}}{{A}^{\rm M} - {A}^{\rm m}}
 
+.. image:: Images/objective_function.png
+  :width: 200
 
 Therefore, the optimum mode for the CCD will be given by the set of parameters obtained through the BOM that maximizes the function given by the equation above. Figure below presents the SNR x AR values obtained as a function of the t<sub>exp</sub>, G<sub>em</sub> and readout rate of the CCD over the BOM iterations. Through this figure, it is possible to see a maximum point for the readout rate of 1 MHz.
 
