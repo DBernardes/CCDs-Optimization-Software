@@ -1,4 +1,4 @@
-# Software of the Optimization Method of the Electron Multiplying Charge Coupled Device of the Acquisition System of the SPARC4
+# Optimization Method of the EMCCDs of the Acquisition System of the SPARC4 (OMASS4)
 
 ## Introduction
 
