@@ -1,5 +1,5 @@
-Introduction
-------------
+Optimization Method of the EMCCDs of the Acquisition System of the SPARC4 (OMASS4)
+----------------------------------------------------------------------------------
 
 The Astrophysics Division of the *Instituto Nacional de Pesquisas Espaciais* (INPE) in collaboration with the *Laboratório Nacional de Astrofísica* (LNA) is developing a new astronomical instrument, the Simultaneous Polarimeter and Rapid Camera in Four Bands [#SPARC4]_. SPARC4 will be installed on the 1.6 m Perkin-Elmer telescope at Observatório Pico dos Dias (OPD), Brazil, and it will allow image acquisition in the four Sloan Digital Sky Survey (SDSS) photometric bands: g, r, i and z. For the acquisition in each band (channel), there is a dedicated iXon Ultra EMCCD, produced by Andor Technology. These devices have an optical window and coating optimized for the spectral range in which they were designed to operate. These cameras also have frame transfer and electron-multiplying capabilities, allowing acquisition rates (AR) of up to 26 fps full-frame (1024 x 1024 pixels) even on faint astronomical objects, which requires high sensitivity for short exposure times.   
 
