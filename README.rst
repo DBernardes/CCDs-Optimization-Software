@@ -31,7 +31,7 @@ Therefore, the OMASS4 was implemented using the aforementioned packages, being a
 
 .. image:: Images/snr.png
   :align: center
-  :width: 400    
+  :width: 500    
     
 where :math:`\sigma_{ADU}` represents the counts' distribution of the acquired image. :math:`N_{f}` is the noise factor and represents and extra noise added to the image because of the use of the EM amplifier. For an Andor EMCCD, :math:`N_{f}` = 1.41. Rearranging the terms of the equation above and isolating :math:`t_{exp}`,
     
