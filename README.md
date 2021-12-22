@@ -51,7 +51,7 @@ The minimum t<sub>exp</sub> of the equation above is given by its smallest non-n
 Therefore, the optimum mode for the CCD will be given by the set of parameters obtained through the BOM that maximizes the function given by the equation above. Figure below presents the SNR x AR values obtained as a function of the t<sub>exp</sub>, G<sub>em</sub> and readout rate of the CCD over the BOM iterations. Through this figure, it is possible to see a maximum point for the readout rate of 1 MHz.
 
 <p align="center">   
-    <img src="https://github.com/DBernardes/OMASS4/blob/main/iteracoes_MOB_ingles.png" />
+    <img src="https://github.com/DBernardes/OMASS4/blob/main/Images/iterations_OMASS4.png" />
 </p>
 
 ## Running the OMASS4
