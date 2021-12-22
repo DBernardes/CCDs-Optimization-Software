@@ -1,7 +1,17 @@
 Optimization Method of the EMCCDs of the Acquisition System of the SPARC4 (OMASS4)
 ----------------------------------------------------------------------------------
 
-The Astrophysics Division of the *Instituto Nacional de Pesquisas Espaciais* (INPE) in collaboration with the *Laboratório Nacional de Astrofísica* (LNA) is developing a new astronomical instrument, the Simultaneous Polarimeter and Rapid Camera in Four Bands [#SPARC4]_. SPARC4 will be installed on the 1.6 m Perkin-Elmer telescope at Observatório Pico dos Dias (OPD), Brazil, and it will allow image acquisition in the four Sloan Digital Sky Survey (SDSS) photometric bands: g, r, i and z. For the acquisition in each band (channel), there is a dedicated iXon Ultra EMCCD, produced by Andor Technology. These devices have an optical window and coating optimized for the spectral range in which they were designed to operate. These cameras also have frame transfer and electron-multiplying capabilities, allowing acquisition rates (AR) of up to 26 fps full-frame (1024 x 1024 pixels) even on faint astronomical objects, which requires high sensitivity for short exposure times.   
+The Astrophysics Division of the *Instituto Nacional de Pesquisas Espaciais* (INPE) 
+in collaboration with the *Laboratório Nacional de Astrofísica* (LNA) is developing 
+a new astronomical instrument, the Simultaneous Polarimeter and Rapid Camera in Four 
+Bands [#SPARC4]_. SPARC4 will be installed on the 1.6 m Perkin-Elmer telescope at 
+Observatório Pico dos Dias (OPD), Brazil, and it will allow image acquisition in the 
+four Sloan Digital Sky Survey (SDSS) photometric bands: g, r, i and z. For the acquisition 
+in each band (channel), there is a dedicated iXon Ultra EMCCD, produced by Andor Technology. 
+These devices have an optical window and coating optimized for the spectral range in which 
+they were designed to operate. These cameras also have frame transfer and electron-multiplying
+capabilities, allowing acquisition rates (AR) of up to 26 fps full-frame (1024 x 1024 pixels)
+even on faint astronomical objects, which requires high sensitivity for short exposure times.   
 
 The quality of photometric measurements in astronomical observations can be quantified by the signal-to-noise ratio (SNR). Another important constraint concerning many scientific applications expected with SPARC4, especially those requiring fast time-series photometry or polarimetry, is the acquisition rate (AR).  Either the SNR or AR or both can change depending on the configuration of the operational mode of the CCD. Therefore, an optimal selection of the operational mode for each CCD is important to obtain the best performance of the instrument. The CCDs provide a set of parameters to control the operational modes, such as the horizontal and vertical shift speed, the CCD gain, and the electron multiplying on/off mode. In addition, one may consider other parameters to obtain an optimal performance such as the spatial binning, exposure time, and sub-imaging, all of which may or may not have their values restricted by the scientific requirements. These parameters affect the SNR and AR in different ways, with non-linear dependencies, and with additional restrictions. Therefore, an optimal parameters choice for all four CCDs to obtain the highest performance in observations may be a difficult task for a human, even for experienced and skillful observers. 
 
@@ -48,6 +58,7 @@ The minimum :math:`t_{exp}` of the equation above is given by its smallest non-n
 .. image:: Images/objective_function.png
   :align: center
   :width: 200
+  
 
 Therefore, the optimum mode for the CCD will be given by the set of parameters obtained through the BOM that maximizes the function given by the equation above. Figure below presents the SNR x AR values obtained as a function of the t<sub>exp</sub>, G<sub>em</sub> and readout rate of the CCD over the BOM iterations. Through this figure, it is possible to see a maximum point for the readout rate of 1 MHz.
 
