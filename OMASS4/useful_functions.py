@@ -2,46 +2,45 @@
 # coding: utf-8
 # 10/01/2020. Denis Varise Bernardes.
 
+import json
+import os
 from sys import exit
 
-
-def create_arq_obs_setup(img_dir):
-    # This function tries to open the file with the info of the observation.
-    # If this file does not exists, this function creates it.
-    try:
-        arq = open(img_dir + "\\" + "observation_setup.txt", "r")
-    except:
-        print("Fill in the file with the observation configuration.")
-        s = """File with the observation setup to be used in optimization.
--------------------------------------------------------------
-
-Signal-to-Noise ratio = 100
-Acquisition rate (Hz) = 1
-Object magnitude = 12.25 
-Sub-image modes = 1024,512,256
-Binning modes = 1,2
-CCD serial number = 9917
-CCD temperature (oC) = -70 
-Iterations number of the optimization = 170
-Experiment name = EXP1
-Export the opt mode to a txt file (y/n) = y
-Export the list of the iterations (y/n) = y
-Export the list of the bias images (y/n) = n
+from hyperopt import rand, tpe
 
 
+def create_input_file(img_dir):
+    """Create input file"""
 
-Pre-image configuration
-----------------------------
-Use a pre-image (y/n) = n
-Image name = 
-Object coordinates (x,y) = 
-Bias image name = 
-Maximum sky radius = 20
-        """
-        arq = open(img_dir + "\\" + "observation_setup.txt", "w")
-        arq.write(s)
+    file_parameters = {
+        "snr": 100,
+        "acq_rate": 1,
+        "mag": 12,
+        "t_exp": [1e-5, 84600],
+        "em_mode": ["EM", "Conv"],
+        "readout_rate": [0.1, 1, 10, 20, 30],
+        "preamp": [1, 2],
+        "sub_img": [1024, 512, 256],
+        "bin": [1, 2],
+        "temperature": -70,
+        "serial_number": 9917,
+        "use_pre_img": True,
+        "pre_img_name": "",
+        "path": "",
+        "star_coords": [0, 0],
+        "bias_img_name": "",
+        "sky_radius": 20,
+        "export_setup_file": True,
+        "export_iterations_file": False,
+        "export_bias_file": False,
+        "exp_name": "",
+        "iteration_number": 10,
+        "optimization_algorithm": tpe.suggest,
+    }
+    file_path = os.path.join(img_dir, "observation_setup.txt")
+    with open(file_path, "w") as arq:
+        json.dump(file_parameters, arq)
         arq.close()
-        exit()
 
 
 def get_obs_setup(img_dir):

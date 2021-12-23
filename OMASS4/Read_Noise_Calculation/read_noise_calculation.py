@@ -12,7 +12,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 
 
-class ReadNoiseCalc:
+class Read_Noise_Calculation:
     def __init__(self):
         self.noise = 0
 
@@ -68,7 +68,10 @@ class ReadNoiseCalc:
         # Reads the spreadsheet
         df = pd.read_csv(
             os.path.join(
-                "OMASS4", "Spreadsheets", "read_noise", "Read_Noise_Values.csv"
+                "OMASS4",
+                "Read_Noise_Calculation",
+                "Spreadsheets",
+                "Read_Noise_Values.csv",
             )
         )
         columns = pd.DataFrame(df)
@@ -80,7 +83,7 @@ class ReadNoiseCalc:
         hss = self.hss
         # Reads the spreadsheet
         tab_name = (
-            os.path.join("OMASS4", "Spreadsheets", "read_noise", "RN_PA")
+            os.path.join("OMASS4", "Read_Noise_Calculation", "Spreadsheets", "RN_PA")
             + str(int(self.preamp))
             + "B"
             + str(int(self.binn))

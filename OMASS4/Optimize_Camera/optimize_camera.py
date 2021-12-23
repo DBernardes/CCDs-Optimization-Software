@@ -2,115 +2,196 @@
 # coding: utf-8
 # 10/01/2020. Denis Varise Bernardes.
 
+import json
 import os
 import random as rd
 from copy import copy
 from math import ceil
 from sys import exit
 
-import numpy as np
-from hyperopt import rand
+from FWHM import FWHM
 
-import AR_Calc as arc
-import FWHM
-import Modos_Operacao_Bib as mob
-import Optimize_AR as oar
-import Optimize_SNR as osnr
-import Optimize_SNR_and_AR as osnrar
-import SNR_Calc as snrc
-from useful_functions import get_obs_setup
+# import Optimize_SNR_and_AR as osnrar
+# import SNR_Calc as snrc
+from hyperopt import rand, tpe
+
+# import Modos_Operacao_Bib as mob
+# import numpy as np
+from Opt_Acquisition_Rate import Optimize_Acquisition_Rate
+from Opt_SNR import Optimize_SNR
+
+# from useful_functions import get_obs_setup
 
 
-class Optimize_Operation_Mode:
-    def __init__(self, img_dir, algorithm):
-        (
-            snr,
-            acq_rate,
-            obj_magnitude,
-            sub_img_modes,
-            binn_modes,
-            serial_number,
-            ccd_temp,
-            max_evals,
-            file_base_name,
-            export_arq,
-            export_loss,
-            export_bias,
-            use_pre_img,
-            img_name,
-            obj_coords,
-            bias_name,
-            sky_radius,
-        ) = get_obs_setup(img_dir)
-        self.algorithm = algorithm
-        self.snr = snr
-        self.acq_rate = acq_rate
-        self.obj_magnitude = obj_magnitude
-        self.max_evals = max_evals
-        self.file_base_name = file_base_name
-        self.export_arq = export_arq
-        self.export_loss = export_loss
-        self.export_bias = export_bias
+class Optimize_Camera:
+    """Optimize Camera Class
 
-        self.sub_img_modes = sub_img_modes
-        self.binn_modes = binn_modes
-        self.serial_number = serial_number
-        self.ccd_temp = ccd_temp
+    Parameters
+    ----------
 
-        self.sky_flux = 12.298897076737294  # e-/pix/s
-        self.hats24_flux = 56122.295000000006  # e-/s
-        self.star_flux = 0
-        self.n_pix_star = 305
-        self.hats24_magnitude = 12.25
+    Yields
+    ------
 
-        self.use_pre_img = use_pre_img
-        self.img_dir = img_dir
-        self.img_name = img_name
-        self.obj_coords = obj_coords
-        self.bias_name = bias_name
-        self.sky_radius = sky_radius
-        self.star_radius = 0
-        self.bias_level = 500
+    Notes
+    -----
 
-        self.MOB = []
+    Examples
+    --------
 
-    def verify_provides_modes(self):
-        # Verifies if the provided sub_img and bin modes are allowed
-        for sub_img in self.sub_img_modes:
-            if sub_img not in [1024, 512, 256]:
-                print("\nInvalid sub-image mode! [%i]" % sub_img)
-                exit()
-        for binn in self.binn_modes:
-            if binn not in [1, 2]:
-                print("\nInvalid binning mode! [%i]" % binn)
-                exit()
+    References
+    ----------
 
-    def calc_star_flux(self):
-        # Select the method for the star flux calculation bases on the information provided to the code.
-        if self.use_pre_img == "y":
-            self.calc_star_sky_flux_from_preimg()
-        if self.use_pre_img == "n":
-            self.calc_star_sky_flux_from_magnitude()
 
-    def calc_star_sky_flux_from_preimg(self):
-        # Calculates the star flux based on the pre-image data.
-        # For more information, access: https://github.com/DBernardes/FWHM
-        FWHM_obj = FWHM.fwhm(
-            img_name=self.img_dir + "\\" + self.img_name,
-            xy_star=self.obj_coords,
-            sky_radius=self.sky_radius,
-            bias_name=self.img_dir + "\\" + self.bias_name,
+    """
+
+    _INPUT_FILE_NAME = "observation_setup.txt"
+    _SKY_FLUX = 12.298897076737294  # e-/pix/s
+    _HATS24_FLUX = 56122.295000000006  # e-/s
+    _N_PIX_STAR = 305
+    _HATS24_MAG = 12.25
+    _BIAS_LEVEL = 500
+
+    def __init__(self, input_file_path=""):
+
+        self.input_file_path = input_file_path
+        self._read_input_file()
+        self._verify_ccd_parameters()
+
+        if self.file_parameters["use_pre_img"]:
+            self._calc_star_sky_flux_from_pre_img()
+        else:
+            self._calc_star_sky_flux_from_magnitude()
+
+    def _read_input_file(self):
+        try:
+            file = os.path.join(self.input_file_path, self._INPUT_FILE_NAME)
+            with open(file, "r") as file:
+                self.file_parameters = json.load(file)
+                file.close()
+        except Exception:
+            self._create_input_file()
+            raise ValueError("Fill in the configuration file.")
+
+    def _create_input_file(self):
+        file_parameters = {
+            "snr": 100,
+            "acq_rate": 1,
+            "mag": 12,
+            "t_exp": [1e-5, 84600],
+            "em_mode": ["EM", "Conv"],
+            "em_gain": [2, 300],
+            "readout_rate": [0.1, 1, 10, 20, 30],
+            "preamp": [1, 2],
+            "sub_img": [1024, 512, 256],
+            "bin": [1, 2],
+            "temperature": -70,
+            "serial_number": 9917,
+            "use_pre_img": True,
+            "pre_img_name": "",
+            "star_coords": [0, 0],
+            "bias_img_name": "",
+            "sky_radius": 20,
+            "export_setup_file": True,
+            "export_iterations_file": False,
+            "export_bias_file": False,
+            "exp_name": "",
+            "iteration_number": 10,
+            "optimization_algorithm": "TPE",
+            "optimization_parameter": "SNR",
+        }
+
+        file_path = os.path.join(self.input_file_path, self._INPUT_FILE_NAME)
+        with open(file_path, "w") as arq:
+            json.dump(file_parameters, arq, indent=4)
+            arq.close()
+
+    def _verify_ccd_parameters(self):
+
+        em_mode = self.file_parameters["em_mode"]
+        em_gain = self.file_parameters["em_gain"]
+        readout_rate = self.file_parameters["readout_rate"]
+        preamp = self.file_parameters["preamp"]
+        t_exp = self.file_parameters["t_exp"]
+        temperature = self.file_parameters["temperature"]
+        sub_img = self.file_parameters["sub_img"]
+        binn = self.file_parameters["bin"]
+
+        self.ccd_operation_mode = {
+            "em_mode": em_mode,
+            "em_gain": em_gain,
+            "readout_rate": readout_rate,
+            "preamp": preamp,
+            "t_exp": t_exp,
+            "temperature": temperature,
+            "sub_img": sub_img,
+            "bin": binn,
+            "serial_number": self.file_parameters["serial_number"],
+        }
+
+        for value in em_mode:
+            if value not in ["EM", "Conv"]:
+                raise ValueError(f"Invalid value for the EM mode: {em_mode}")
+
+        if min(em_gain) < 2 or max(em_gain) > 300:
+            raise ValueError(f"The em gain out of range [2, 300]: {em_gain}")
+
+        for value in preamp:
+            if value not in [1, 2]:
+                raise ValueError(f"Invalid value for the pre-amplification: {preamp}")
+
+        for value in readout_rate:
+            if value not in [0.1, 1, 10, 20, 30]:
+                raise ValueError(f"Invalid value for the readout rate: {readout_rate}")
+            if value == 0.1 and "Conv" not in em_mode:
+                raise ValueError(
+                    f"The EM mode does not have the readout rate of 0.1 MHz."
+                )
+            if value in [10, 20, 30] and "EM" not in em_mode:
+                raise ValueError(
+                    f"The conventional mode does not have the readout rate of {value} MHz."
+                )
+
+        for value in binn:
+            if value not in [1, 2]:
+                raise ValueError(f"Invalid value for the binning: {bin}")
+
+        for value in sub_img:
+            if value not in [1024, 512, 256]:
+                raise ValueError(f"Invalid value for the binning: {sub_img}")
+
+        if min(t_exp) < 1e-5 or max(t_exp) > 84600:
+            raise ValueError(f"The exposure time out of range [1e-5, 84600]: {t_exp}")
+
+        if temperature < -80 or temperature > 15:
+            raise ValueError(f"The temperature out of range [-80, 15]: {temperature}")
+
+    def _calc_star_sky_flux_from_pre_img(self):
+        """Calculates the star flux based on the pre-image data."""
+        file_path = os.path.join(
+            self.input_file_path, self.file_parameters["pre_img_name"]
         )
-        FWHM_obj.read_star_img()
-        FWHM_obj.get_max_count()
-        FWHM_obj.set_centroid()
-        fwhm, star_radius, x, y = FWHM_obj.calc_FWHM()
-        FWHM_obj.read_bias_img()
-        FWHM_obj.calc_dark_current()
-        FWHM_obj.read_exp_time()
-        FWHM_obj.read_em_gain()
-        FWHM_obj.calc_star_sky_flux()
-        snr, rn, sky_flux, star_flux, n_pixels, bias_level = FWHM_obj.calc_SNR()
+        star_coords = self.file_parameters["star_coords"]
+        sky_radius = self.file_parameters["sky_radius"]
+        bias_img_path = os.path.join(
+            self.input_file_path, self.file_parameters["bias_img_name"]
+        )
+
+        fwhm_obj = FWHM(
+            img_name=file_path,
+            xy_star=star_coords,
+            sky_radius=sky_radius,
+            bias_name=bias_img_path,
+        )
+        fwhm_obj.read_star_img()
+        fwhm_obj.get_max_count()
+        fwhm_obj.set_centroid()
+        fwhm, star_radius, x, y = fwhm_obj.calc_FWHM()
+        fwhm_obj.read_bias_img()
+        fwhm_obj.calc_dark_current()
+        fwhm_obj.read_exp_time()
+        fwhm_obj.read_em_gain()
+        fwhm_obj.calc_star_sky_flux()
+        snr, rn, sky_flux, star_flux, n_pixels, bias_level = fwhm_obj.calc_SNR()
         self.sky_flux = sky_flux
         self.star_flux = star_flux
         self.n_pix_star = n_pixels
@@ -118,41 +199,44 @@ class Optimize_Operation_Mode:
         self.star_radius = star_radius
         self.bias_level = bias_level
 
-    def calc_star_sky_flux_from_magnitude(self):
+    def _calc_star_sky_flux_from_magnitude(self):
         # Calculates, through the Pogson equation, the star flux based on the magnitude provided to the software.
         # This function uses the star flux and magnitude values of the HATS24 star as reference values.
-        aux = 10 ** ((self.hats24_magnitude - self.obj_magnitude) / 2.5)
-        self.star_flux = self.hats24_flux * aux
+        aux = 10 ** ((self._HATS24_MAG - self.file_parameters["mag"]) / 2.5)
+        self.star_flux = self._HATS24_FLUX * aux
 
-    def optimize(self, opt_param):
-        # Choose the optimization method based on the option provided to the software.
-        if opt_param == 1:
-            self.Optimize_SNR()
-        if opt_param == 2:
+    def optimize(self):
+        """Optimize the camera."""
+
+        opt_param = self.file_parameters["optimization_parameter"]
+
+        if opt_param == "SNR":
+            self._optimize_snr()
+        elif opt_param == "ACQ_RATE":
             self.Optimize_FA()
-        if opt_param == 3:
+        elif opt_param == "BOTH":
             self.Optimize_SNR_and_AR()
+        else:
+            raise ValueError(f"Unknow optimization parameter: {opt_param}.")
 
-    def Optimize_SNR(self):
-        # Starts the object that determines which modes meet the acquisition rate limit.
-        OAR = oar.OptimizeAcquisitionRate(
-            acquisition_rate=self.acq_rate,
-            sub_img_modes=self.sub_img_modes,
-            binn_modes=self.binn_modes,
+    def _optimize_snr(self):
+        oar = Optimize_Acquisition_Rate(
+            acquisition_rate=self.file_parameters["acq_rate"],
+            ccd_operation_mode=self.ccd_operation_mode,
         )
         # Determines those modes which accomplish the acquisition rate requirement
-        OAR.determine_operation_modes()
-        obj_lista_modos = OAR.read_MOB_obj()
+        oar.determine_operation_modes()
+        obj_lista_modos = oar.read_MOB_obj()
         if obj_lista_modos.get_list_of_modes() == []:
-            print("\n\tNo mode meets the requirements provided.")
+            print("\n\t There is no mode that meets the requirements provided.")
             print("\tStopping execution.")
             exit()
 
         # Creates the class object that performs the SNR optimization
-        OSNR = osnr.OptSignalNoiseRation(
-            snr_target=self.snr,
-            serial_number=self.serial_number,
-            ccd_temp=self.ccd_temp,
+        OSNR = Optimize_SNR(
+            snr_target=self.file_parameters["snr"],
+            serial_number=self.file_parameters["serial_number"],
+            ccd_temp=self.file_parameters["temperature"],
             n_pix_star=self.n_pix_star,
             sky_flux=self.sky_flux,
             star_flux=self.star_flux,
@@ -171,9 +255,12 @@ class Optimize_Operation_Mode:
         # Prints the best mode
         OSNR.print_best_mode()
         # Exports the optimum mode to an external .txt file
-        if "y" in self.export_arq:
+        if self.file_parameters["export_setup_file"]:
             OSNR.export_optimal_setup(
-                self.img_dir, self.file_base_name, self.star_radius, self.obj_coords
+                self.input_file_path,
+                self.file_parameters["exp_name"],
+                self.star_radius,
+                self.obj_coords,
             )
 
     def Optimize_FA(self):

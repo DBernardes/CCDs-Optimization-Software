@@ -370,7 +370,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
             algo=tpe_algo,
             trials=self.tpe_trials,
             max_evals=max_evals,
-            rstate=np.random.RandomState(50),
+            # rstate=np.random.RandomState(50),
         )
         # Gets the best mode
         index_list_modes = best_mode["operation_mode"]

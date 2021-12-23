@@ -3,7 +3,7 @@
 # 24/10/2019. Denis Varise Bernardes.
 
 
-class ModosOperacao:
+class Operation_Modes:
     def __init__(self):
         self.em_mode = []
         self.em_gain = []

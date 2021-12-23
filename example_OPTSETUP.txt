@@ -1,15 +1,15 @@
 {
-    "bin": 2,
+    "bin": 1,
     "em_gain": 0,
     "em_mode": "CONV",
     "hss": 1,
-    "img_name": "CONV_1MHz_PA1_B1_TEXP20_G1_OPTMODE.fits",
+    "img_name": "_OPTMODE.fits",
     "kinetic_series_length": 1,
     "obj_coords": "(101,101)",
     "obs_type": "object",
-    "output": 300.80372073031697,
-    "preamp": 2,
+    "output": 310.83867268423154,
+    "preamp": 1,
     "star_radius": 22.30674367248861,
-    "sub_img": 1024,
+    "sub_img": 512,
     "t_exp": 1.0
 }

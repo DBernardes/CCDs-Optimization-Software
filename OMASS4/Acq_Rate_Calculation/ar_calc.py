@@ -12,12 +12,15 @@ import pandas as pd
 from scipy.interpolate import interp1d
 
 
-class AcquisitionRateCalc:
+class Acquisition_Rate_Calculation:
     def __init__(self):
         self.acquisition_rate = 0
         self.t_corte = 0
         self.tab_valores_readout = os.path.join(
-            "OMASS4", "Spreadsheets", "read_noise", "Readout_Values.csv"
+            "OMASS4",
+            "Acq_Rate_Calculation",
+            "Spreadsheets",
+            "Readout_Values.csv",
         )
         self.max_t_exp = 0
 
@@ -37,7 +40,7 @@ class AcquisitionRateCalc:
         else:
             tab_name += str(self.hss)
         return os.path.join(
-            "OMASS4", "Spreadsheets", "acquisition_rate", tab_name + ".csv"
+            "OMASS4", "Acq_Rate_Calculation", "Spreadsheets", tab_name + ".csv"
         )
 
     def calc_acquisition_rate_texp_greater_tcorte(self):

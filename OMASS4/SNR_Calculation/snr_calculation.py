@@ -6,14 +6,11 @@
 from math import exp, sqrt
 from sys import exit
 
-import astropy.io.fits as fits
-import matplotlib.pyplot as plt
 import numpy as np
+from Read_Noise_Calculation import Read_Noise_Calculation
 
-import Read_Noise_Calc as RNC
 
-
-class SignalToNoiseRatioCalc:
+class SNR_Calculation:
     def __init__(
         self,
         t_exp,
@@ -116,7 +113,7 @@ class SignalToNoiseRatioCalc:
 
     def calc_RN(self):
         # Calculates the read noise by using the read noise library
-        RN = RNC.ReadNoiseCalc()
+        RN = Read_Noise_Calculation()
         RN.write_operation_mode(
             self.em_mode, self.em_gain, self.hss, self.preamp, self.binn
         )

@@ -6,22 +6,16 @@ import json
 import os
 from sys import exit
 
-import numpy as np
-from hyperopt import Trials, fmin, hp, rand, tpe
-
-import AR_Calc as arc
-import Modos_Operacao_Bib as MOB
+from Acq_Rate_Calculation import Acquisition_Rate_Calculation
+from Operation_Modes import Operation_Modes
 
 
-class OptimizeAcquisitionRate:
-    def __init__(self, acquisition_rate, sub_img_modes, binn_modes):
-        self.MOB = MOB.ModosOperacao()
-        self.ARC = arc.AcquisitionRateCalc()
+class Optimize_Acquisition_Rate:
+    def __init__(self, acquisition_rate, ccd_operation_mode):
+        self.MOB = Operation_Modes()
+        self.ARC = Acquisition_Rate_Calculation()
         self.acquisition_rate = acquisition_rate
-        self.vector_sub_img = sub_img_modes
-        self.vector_binn = binn_modes
-        self.t_exp = 0.00001
-        self.best_mode = {}
+        self.ccd_operation_mode = ccd_operation_mode
 
     def write_mode_to_MOB_class(
         self, em_mode, em_gain, hss, preamp, binn, sub_img, t_exp
@@ -46,17 +40,21 @@ class OptimizeAcquisitionRate:
     def determine_operation_modes(self):
         # This functions determines those operation modes that
         # accomplish the minimum acquisition rate requirement.
-        vector_em = [0, 1]
-        for em_mode in vector_em:
-            vector_hss = [1, 10, 20, 30]
-            if em_mode == 0:
-                vector_hss = [0.1, 1]
-            for hss in vector_hss:
-                for binn in self.vector_binn:
-                    for sub_img in self.vector_sub_img:
+        for em_mode in self.ccd_operation_mode["em_mode"]:
+            for hss in self.ccd_operation_mode["readout_rate"]:
+                if em_mode == "Conv" and hss not in [0.1, 1]:
+                    continue
+                if em_mode == "EM" and hss == 0.1:
+                    continue
+                for binn in self.ccd_operation_mode["bin"]:
+                    for sub_img in self.ccd_operation_mode["sub_img"]:
                         # Starts the class for the acquisition rate calculation
                         self.ARC.write_operation_mode(
-                            em_mode, hss, binn, sub_img, self.t_exp
+                            em_mode,
+                            hss,
+                            binn,
+                            sub_img,
+                            min(self.ccd_operation_mode["t_exp"]),
                         )
                         # Selects the cut-off exposure time
                         self.ARC.seleciona_t_corte()
@@ -78,9 +76,7 @@ class OptimizeAcquisitionRate:
     def determine_min_acquisition_rate(self):
         # Given a list of modes,
         # this functions calculates the highest and the smallest acquisition rates
-        max_acq_rate = 0
         min_acq_rate = 1e3
-        best_mode = {}
         # Iterates each mode of the list of selected modes
         for mode in self.MOB.get_list_of_modes():
             # Starts the class for the acquisition rate calculation
@@ -104,7 +100,6 @@ class OptimizeAcquisitionRate:
     def determine_fastest_operation_mode(self):
         # Given a list of modes, this functions determine the mode with the highest acquisition rate
         max_acq_rate = 0
-        best_mode = {}
         # Iterates each mode of the list of selected modes
         for mode in self.MOB.get_list_of_modes():
             # Starts the class for the acquisition rate calculation

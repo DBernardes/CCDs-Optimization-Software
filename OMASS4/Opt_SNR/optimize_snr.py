@@ -4,25 +4,19 @@
 # 12/12/2019.
 
 
-import collections
 import json
 import os
-import random as rd
 from copy import copy
 from sys import exit
 
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-from hyperopt import Trials, fmin, hp, rand, tpe
 from hyperopt.pyll import scope
 from hyperopt.pyll.stochastic import sample
+from Operation_Modes import Operation_Modes
+from SNR_Calculation import SNR_Calculation
 
-import Modos_Operacao_Bib as MOB
-import SNR_Calc as snrc
 
-
-class OptSignalNoiseRation:
+class Optimize_SNR:
     def __init__(
         self,
         snr_target,
@@ -33,7 +27,7 @@ class OptSignalNoiseRation:
         star_flux,
         bias_level,
     ):
-        self.MOB = MOB.ModosOperacao()
+        self.MOB = Operation_Modes()
         self.space = []
         self.best_mode = {}
         self.list_all_modes = []
@@ -185,7 +179,7 @@ class OptSignalNoiseRation:
                     if max_em_gain > 300:
                         max_em_gain = 300
                 # Starts the SNR library
-                SNRC = snrc.SignalToNoiseRatioCalc(
+                SNRC = SNR_Calculation(
                     max_t_exp,
                     em_mode,
                     max_em_gain,
@@ -290,7 +284,7 @@ class OptSignalNoiseRation:
                 if max_em_gain > 300:
                     max_em_gain = 300
             # starts the class of the SNR calculation
-            SNRC = snrc.SignalToNoiseRatioCalc(
+            SNRC = SNR_Calculation(
                 min_t_exp,
                 em_mode,
                 max_em_gain,
@@ -348,7 +342,7 @@ class OptSignalNoiseRation:
                 if max_em_gain > 300:
                     max_em_gain = 300
             # Starts the class of the SNR calculation
-            SNRC = snrc.SignalToNoiseRatioCalc(
+            SNRC = SNR_Calculation(
                 max_t_exp,
                 em_mode,
                 max_em_gain,

@@ -5,13 +5,7 @@
 
 import os
 
-from hyperopt import rand, tpe
+from Optimize_Camera import Optimize_Camera
 
-import Optimize_Operation_Mode as oom
-
-img_dir = os.path.join(os.getcwd(), "example")
-OOM = oom.Optimize_Operation_Mode(img_dir, algorithm=tpe.suggest)
-OOM.verify_provides_modes()
-OOM.calc_star_flux()
-# Optimize(1-SNR, 2-FA, 3-Both)
-OOM.optimize(1)
+opt_cam = Optimize_Camera(input_file_path="example")
+opt_cam.optimize()
