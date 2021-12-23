@@ -119,7 +119,7 @@ class Optimize_SNR:
         if self.serial_number == 9917:
             self.dark_noise = 5.92 * np.exp(0.0005 * T ** 2 + 0.18 * T)
 
-    def calc_max_em_gain(self, max_t_exp, min_t_exp):
+    def calc_max_em_gain(self, max_t_exp, min_t_exp, max_em_gain):
         # Calculation of the maximum EM gain allowed as a function of the CCD operating mode.
         # This calculation takes into account the maximum amount of 100 photons per pixel for which
         # the EM mode is better than the Conventional one.
@@ -133,13 +133,15 @@ class Optimize_SNR:
         max_ADU = (2 ** 16) * 0.8
 
         aux = (sky_flux + star_flux / n_pix + dn) * max_t_exp / gain
-        max_em_gain = (max_ADU - bias) / aux
+        new_max_em_gain = (max_ADU - bias) / aux
 
         # if the photons/pix ir bigger than 100 photons, it is calculated the EM gain and the
         # exposure time values that accomplish this limit
         if aux > max_fotons:
-            max_em_gain = (max_ADU - bias) / (max_fotons / gain)
+            new_max_em_gain = (max_ADU - bias) / (max_fotons / gain)
             max_t_exp = max_fotons / (sky_flux + star_flux / n_pix + dn)
+        if new_max_em_gain < max_em_gain:
+            max_em_gain = new_max_em_gain
         # If the max exposure time found in the previous step is smaller than the min exposure time,
         # this mode is discarded
         if max_t_exp < min_t_exp:
@@ -147,7 +149,7 @@ class Optimize_SNR:
             max_t_exp = 0
         return max_em_gain, max_t_exp
 
-    def determine_operation_modes_minimun_SNR(self):
+    def determine_operation_modes_minimun_SNR(self, preamps, max_em_gain):
         # This function determines the operating modes that meet a minimum SNR.
         # For each mode, the maximum allowed EM gain is calculated.
         # This gain is used to calculate the minimum exposure time allowed to reach the SNR.
@@ -160,14 +162,14 @@ class Optimize_SNR:
             binn = mode["binn"]
             max_t_exp = mode["max_t_exp"]
             sub_img = mode["sub_img"]
-            for preamp in [1, 2]:
+            for preamp in preamps:
                 max_em_gain = 0
                 if em_mode == 1:
                     # calculates the CCD gain
                     self.set_gain(em_mode, hss, preamp)
                     # calculates the EM gain
                     max_em_gain, max_t_exp = self.calc_max_em_gain(
-                        mode["max_t_exp"], mode["min_t_exp"]
+                        mode["max_t_exp"], mode["min_t_exp"], max_em_gain
                     )
                     # if the returned EM gain is 0, this mode is discarded
                     if max_em_gain == 0:
@@ -215,12 +217,12 @@ class Optimize_SNR:
                     self.filtered_list.append(dic)
         self.MOB.write_list_of_modes(self.filtered_list)
 
-    def duplicate_list_of_modes_for_PA12(self):
+    def duplicate_list_of_modes_for_PA12(self, preamps):
         # Creates a list of allowed modes. In this step, repeated sub_img modes are discarded.
         # However, it is still necessary to remove the modes with overlapping maximum texp.
         # Each iteration receives one of the preamp values: 1 or 2.
         self.list_all_modes = self.MOB.get_list_of_modes()
-        for preamp in [1, 2]:
+        for preamp in preamps:
             for mode in self.list_all_modes:
                 new_mode = {
                     "em_mode": mode["em_mode"],
@@ -249,7 +251,7 @@ class Optimize_SNR:
         for mode in new_list:
             self.filtered_list.remove(mode)
 
-    def calc_min_snr(self):
+    def calc_min_snr(self, max_em_gain):
         # This function calculates the maximum and minimum
         # values of the SNR for the selected operation modes.
         max_snr = 0
@@ -272,7 +274,7 @@ class Optimize_SNR:
                 self.set_gain(em_mode, hss, preamp)
                 # Calculates the maximum EM gain
                 max_em_gain, max_t_exp = self.calc_max_em_gain(
-                    mode["max_t_exp"], mode["min_t_exp"]
+                    mode["max_t_exp"], mode["min_t_exp"], max_em_gain
                 )
                 # if the returned EM gain is 0, this mode is discarded
                 if max_em_gain == 0:
@@ -310,7 +312,7 @@ class Optimize_SNR:
         self.best_mode = best_mode
         return min_snr
 
-    def calc_best_mode(self):
+    def calc_best_mode(self, max_em_gain):
         # Calculates the best value of the SNR based on the selected operation modes.
         best_snr = 0
         best_mode = {}
@@ -330,7 +332,7 @@ class Optimize_SNR:
                 self.set_gain(em_mode, hss, preamp)
                 # Calculates the maximim EM gain
                 max_em_gain, max_t_exp = self.calc_max_em_gain(
-                    mode["max_t_exp"], mode["min_t_exp"]
+                    mode["max_t_exp"], mode["min_t_exp"], max_em_gain
                 )
                 # if the returned EM gain is 0, this mode is discarded
                 if max_em_gain == 0:
@@ -431,7 +433,7 @@ class Optimize_SNR:
             1
         dic["kinetic_series_length"] = 1
 
-        file_name = img_directory + file_base_name + "_OPTSETUP.txt"
+        file_name = os.path.join(img_directory, file_base_name + "_OPTSETUP.txt")
         with open(file_name, "w") as arq:
             json.dump(dic, arq, indent=4, sort_keys=True)
             arq.close()

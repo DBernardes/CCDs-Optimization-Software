@@ -10,21 +10,15 @@ import json
 import os
 import random as rd
 from copy import copy
-from math import ceil
-from sys import exit
 
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
+from Acq_Rate_Calculation import Acquisition_Rate_Calculation
 from hyperopt import Trials, fmin, hp, rand, tpe
 from hyperopt.pyll import scope
-from hyperopt.pyll.stochastic import sample
-
-import AR_Calc as arc
-import Modos_Operacao_Bib as mob
-import Optimize_AR as oar
-import Optimize_SNR as osnr
-import SNR_Calc as snrc
+from Operation_Modes import Operation_Modes
+from Opt_Acquisition_Rate import Optimize_Acquisition_Rate
+from Opt_SNR import Optimize_SNR
+from SNR_Calculation import SNR_Calculation
 
 
 def function_fa(parameters=[]):
@@ -43,7 +37,7 @@ def function_fa(parameters=[]):
     max_fa = parameters[14]
     min_fa = parameters[15]
 
-    ARC = arc.AcquisitionRateCalc()
+    ARC = Acquisition_Rate_Calculation()
     ARC.write_operation_mode(em_mode, hss, binn, sub_img, t_exp)
     ARC.seleciona_t_corte()
     ARC.calc_acquisition_rate()
@@ -68,7 +62,7 @@ def function_snr(parameters=[]):
     max_snr = parameters[12]
     min_snr = parameters[13]
     snr_target = parameters[16]
-    SNRC = snrc.SignalToNoiseRatioCalc(
+    SNRC = SNR_Calculation(
         t_exp=t_exp,
         em_mode=em_mode,
         em_gain=em_gain,
@@ -105,7 +99,7 @@ def function(parameters=[]):
 # -------------------------------------------------------------------
 
 
-class Opt_SignalNoiseRatio_AcquisitionRate:
+class Opt_SNR_AR:
     def __init__(
         self,
         snr_target,
@@ -143,7 +137,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         self.snr_target = snr_target
         self.losses_SNR = []
         self.losses_FA = []
-        self.MOB = mob.ModosOperacao()
+        self.MOB = Operation_Modes()
         self.max_snr = 0
         self.min_snr = 0
         self.max_fa = 0
@@ -211,12 +205,12 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         for modo in lista:
             print(modo)
 
-    def SNR_FA_ranges(self):
+    def SNR_FA_ranges(self, ccd_operation_mode):
         # This function calculates hte minimum and maximum values of the
         # SNR and the AR for the normalization of the cost function.
 
         # Starts the class of the SNR optimization
-        OSNR = osnr.OptSignalNoiseRation(
+        OSNR = Optimize_SNR(
             snr_target=self.snr_target,
             serial_number=self.serial_number,
             ccd_temp=self.ccd_temp,
@@ -226,17 +220,15 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
             bias_level=self.bias_level,
         )
         OSNR.write_MOB_obj(copy(self.MOB))
-        OSNR.duplicate_list_of_modes_for_PA12()
+        OSNR.duplicate_list_of_modes_for_PA12(ccd_operation_mode["preamp"])
         OSNR.remove_repeat_modes()
         # Calculates the maximum SNR
-        max_snr = OSNR.calc_best_mode()
+        max_snr = OSNR.calc_best_mode(ccd_operation_mode["max_em_gain"])
         # Calculates the minimum SNR
-        min_snr = OSNR.calc_min_snr()
+        min_snr = OSNR.calc_min_snr(ccd_operation_mode["max_em_gain"])
         # Starts the class of the acquisition rate optimization
-        OAR = oar.OptimizeAcquisitionRate(
-            acquisition_rate=self.acq_rate_target,
-            sub_img_modes=self.sub_img_modes,
-            binn_modes=self.binn_modes,
+        OAR = Optimize_Acquisition_Rate(
+            acquisition_rate=self.acq_rate_target, ccd_operation_mode=ccd_operation_mode
         )
         OAR.write_MOB_obj(copy(self.MOB))
         # Calculates the minimum acquisition rate
@@ -248,7 +240,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         self.max_fa = max_fa
         self.min_fa = min_fa
 
-    def calc_max_em_gain(self, max_t_exp, min_t_exp):
+    def calc_max_em_gain(self, max_t_exp, min_t_exp, max_em_gain):
         # Calculation of the maximum EM gain allowed as a function of the CCD operating mode.
         # This calculation takes into account the maximum amount of 100 photons per pixel for which
         # the EM mode is better than the Conventional one.
@@ -262,13 +254,15 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         max_ADU = (2 ** 16) * 0.8
 
         aux = (sky_flux + star_flux / n_pix + dn) * max_t_exp / gain
-        max_em_gain = (max_ADU - bias) / aux
+        new_max_em_gain = (max_ADU - bias) / aux
 
         # if the photons/pix ir bigger than 100 photons, it is calculated the EM gain and the
         # exposure time values that accomplish this limit
         if aux > max_fotons:
-            max_em_gain = (max_ADU - bias) / (max_fotons / gain)
+            new_max_em_gain = (max_ADU - bias) / (max_fotons / gain)
             max_t_exp = max_fotons / (sky_flux + star_flux / n_pix + dn)
+        if new_max_em_gain < max_em_gain:
+            max_em_gain = new_max_em_gain
         # If the max exposure time found in the previous step is smaller than the min exposure time,
         # this mode is discarded
         if max_t_exp < min_t_exp:
@@ -505,7 +499,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         em_gain = self.best_mode["em_gain"]
         preamp = self.best_mode["preamp"]
         # Start the SNR calculation library
-        SNRC = snrc.SignalToNoiseRatioCalc(
+        SNRC = SNR_Calculation(
             t_exp,
             em_mode,
             em_gain,
@@ -527,7 +521,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         # the maximum SNR used for the normalization
         snr = SNRC.get_SNR()
         # Starts the acquisition rate calculation class
-        ARC = arc.AcquisitionRateCalc()
+        ARC = Acquisition_Rate_Calculation()
         ARC.write_operation_mode(em_mode, hss, binn, sub_img, t_exp)
         ARC.seleciona_t_corte()
         # Calculates the acquisition rate value.
@@ -564,7 +558,7 @@ class Opt_SignalNoiseRatio_AcquisitionRate:
         dic["snr_target"] = snr_target
         dic["SNR"] = snr
         dic["FA"] = fa
-        file_name = img_directory + file_base_name + "_OPTSETUP.txt"
+        file_name = os.path.join(img_directory, file_base_name + "_OPTSETUP.txt")
         # Write the optimum mode to a .txt file in the json format
         with open(file_name, "w") as arq:
             json.dump(dic, arq, indent=4, sort_keys=True)

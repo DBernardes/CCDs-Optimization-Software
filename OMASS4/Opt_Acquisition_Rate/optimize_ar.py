@@ -69,6 +69,8 @@ class Optimize_Acquisition_Rate:
                                     self.acquisition_rate
                                 )
                             )
+                            if max_t_exp > max(self.ccd_operation_mode["t_exp"]):
+                                max_t_exp = max(self.ccd_operation_mode["t_exp"])
                             self.write_mode_to_MOB_class(
                                 em_mode, 0, hss, 0, binn, sub_img, max_t_exp
                             )
@@ -173,7 +175,7 @@ class Optimize_Acquisition_Rate:
             1
         dic["FA"] = FA
 
-        file_name = img_directory + file_base_name + "_OPTSETUP.txt"
+        file_name = os.path.join(img_directory, file_base_name + "_OPTSETUP.txt")
         with open(file_name, "w") as arq:
             json.dump(dic, arq, indent=4, sort_keys=True)
             arq.close()

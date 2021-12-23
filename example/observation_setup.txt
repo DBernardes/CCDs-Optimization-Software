@@ -1,38 +1,26 @@
 {
-    "snr": 100,
+    "snr": 1,
     "acq_rate": 1,
     "mag": 12,
     "t_exp": [
-        1e-05,
+        1e-5,
         84600
     ],
-    "em_mode": [
-        "EM",
+    "em_mode": [      
         "Conv"
     ],
-    "em_gain": [
-        2,
-        300
-    ],
-    "readout_rate": [
-        0.1,
-        1,
-        10,
-        20,
-        30
+    "max_em_gain": 300,
+    "readout_rate": [      
+        1
     ],
     "preamp": [
-        1,
-        2
+        1
     ],
-    "sub_img": [
-        1024,
-        512,
+    "sub_img": [      
         256
     ],
     "bin": [
-        1,
-        2
+        1  
     ],
     "temperature": -70,
     "serial_number": 9917,
@@ -48,7 +36,7 @@
     "export_iterations_file": false,
     "export_bias_file": false,
     "exp_name": "",
-    "iteration_number": 10,
+    "iterations_number": 10,
     "optimization_algorithm": "TPE",
-    "optimization_parameter": "AR"
+    "optimization_parameter": "SNR"
 }
