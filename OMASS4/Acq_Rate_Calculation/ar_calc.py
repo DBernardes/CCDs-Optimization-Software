@@ -13,6 +13,8 @@ from scipy.interpolate import interp1d
 
 
 class Acquisition_Rate_Calculation:
+    """Acquisition Rate Calculation class."""
+
     def __init__(self):
         self.acquisition_rate = 0
         self.t_corte = 0
@@ -24,21 +26,25 @@ class Acquisition_Rate_Calculation:
         )
         self.max_t_exp = 0
 
-    def write_operation_mode(self, em_mode, hss, binn, sub_img, t_exp):
-        # Write the provided operation mode to the class
-        self.t_exp = t_exp
-        self.em_mode = em_mode
-        self.hss = hss
-        self.binn = binn
-        self.sub_img = sub_img
+    def write_operation_mode(self, operation_mode):
+        """Write the provided operation mode to the class."""
+        self.t_exp = min(operation_mode["t_exp"])
+        self.em_mode = operation_mode["em_mode"]
+        self.readout_rate = operation_mode["readout_rate"]
+        self.binn = operation_mode["bin"]
+        self.sub_img = operation_mode["sub_img"]
 
-    def define_acq_rate_tab_name(self):
-        # Mounts the string of the spreadsheet name the be used as a function of the CCD.
+    def create_spreadsheet_name(self):
+        """Define the spreadshett name.
+
+        This function mounts the string of the spreadsheet name the to calculate the acquisition
+        rate of the CCD."""
+
         tab_name = "X" + str(self.sub_img) + "B" + str(self.binn) + "HSS"
-        if self.hss == 0.1:
+        if self.readout_rate == 0.1:
             tab_name += "01"
         else:
-            tab_name += str(self.hss)
+            tab_name += str(self.readout_rate)
         return os.path.join(
             "OMASS4", "Acq_Rate_Calculation", "Spreadsheets", tab_name + ".csv"
         )
@@ -53,7 +59,7 @@ class Acquisition_Rate_Calculation:
         # this function should be used
 
         # Reads the spreadsheet
-        tab_name = self.define_acq_rate_tab_name()
+        tab_name = self.create_spreadsheet_name()
         columns = pd.read_csv(tab_name, dtype=np.float64)
 
         # Get the column with the exposure times
@@ -83,7 +89,7 @@ class Acquisition_Rate_Calculation:
         # These times were obtained in the work presented in
         # https://repositorio.unifei.edu.br/jspui/handle/123456789/2201
         indice_tab_t_corte = 0
-        if self.hss == 30:
+        if self.readout_rate == 30:
             if self.sub_img == 1024:
                 if self.binn == 2:
                     indice_tab_t_corte = 1
@@ -99,7 +105,7 @@ class Acquisition_Rate_Calculation:
                     indice_tab_t_corte = 5
                 if self.binn == 1:
                     indice_tab_t_corte = 6
-        if self.hss == 20:
+        if self.readout_rate == 20:
             if self.sub_img == 1024:
                 if self.binn == 2:
                     indice_tab_t_corte = 7
@@ -115,7 +121,7 @@ class Acquisition_Rate_Calculation:
                     indice_tab_t_corte = 11
                 if self.binn == 1:
                     indice_tab_t_corte = 12
-        if self.hss == 10:
+        if self.readout_rate == 10:
             if self.sub_img == 1024:
                 if self.binn == 2:
                     indice_tab_t_corte = 13
@@ -131,7 +137,7 @@ class Acquisition_Rate_Calculation:
                     indice_tab_t_corte = 17
                 if self.binn == 1:
                     indice_tab_t_corte = 18
-        if self.hss == 1:
+        if self.readout_rate == 1:
             if self.sub_img == 1024:
                 if self.binn == 2:
                     indice_tab_t_corte = 19
@@ -147,7 +153,7 @@ class Acquisition_Rate_Calculation:
                     indice_tab_t_corte = 23
                 if self.binn == 1:
                     indice_tab_t_corte = 24
-        if self.hss == 0.1:
+        if self.readout_rate == 0.1:
             if self.sub_img == 1024:
                 if self.binn == 2:
                     indice_tab_t_corte = 25
@@ -178,15 +184,16 @@ class Acquisition_Rate_Calculation:
         if self.t_exp >= self.t_corte:
             self.calc_acquisition_rate_texp_greater_tcorte()
 
-    def calc_texp_provided_acquisition_frequency(self, target_acquisition_rate):
-        # This function calculates the exposure time value based on the provided acquisition rate
+        return self.acquisition_rate
+
+    def calculate_maximum_t_exp(self, target_acquisition_rate):
         acq_rate = target_acquisition_rate
         freq_corte = 1 / self.t_corte
         if acq_rate <= freq_corte:
             self.max_t_exp = 1 / acq_rate
         if acq_rate > freq_corte:
             # Name of the spreadsheet with the texp vs acquisition rate curve
-            tab_name = self.define_acq_rate_tab_name()
+            tab_name = self.create_spreadsheet_name()
             # Reads the spreadsheet
             columns = pd.read_csv(tab_name, dtype=np.float64)
             # Get the exposure time column

@@ -1,0 +1,12 @@
+{
+    "best_snr": 256.0280933879938,
+    "bin": 2,
+    "em_gain": 1,
+    "em_mode": "Conv",
+    "obj_coords": "(0,0)",
+    "preamp": 2,
+    "readout_rate": 1,
+    "star_radius": 0,
+    "sub_img": 256,
+    "t_exp": 1.0
+}

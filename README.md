@@ -63,10 +63,6 @@ There are some packages that need to be installed before running the software.
 * [hyperopt](https://github.com/WillKoehrsen/hyperparameter-optimization)
 * [numpy](https://numpy.org/)
 * [pandas](https://pandas.pydata.org/)
-* [matplotlib](https://matplotlib.org/)
-* [collections](https://docs.python.org/3/library/collections.html)
-* [json](https://www.w3schools.com/python/python_json.asp)
-* [xlrd](https://xlrd.readthedocs.io/en/latest/)
 * [Photutils](https://photutils.readthedocs.io/en/stable/)
 * [Scipy](https://www.scipy.org/)
 

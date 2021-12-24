@@ -4,42 +4,28 @@
 
 
 class Operation_Modes:
+    """Operation Modes class.
+
+    This class store a list of python dictionaries, where each dic has
+    a CCD operation mode.
+    """
+
     def __init__(self):
-        self.em_mode = []
-        self.em_gain = []
-        self.hss = []
-        self.preamp = []
-        self.binn = []
-        self.sub_img = []
-        self.t_exp = []
 
-        self.modos_operacao = []
-        self.modo_atual = {}
+        self.operation_modes = []
 
-    def write_mode(
-        self, em_mode, em_gain, hss, preamp, binn, sub_img, max_t_exp, min_t_exp=0.00001
-    ):
-        # Write the operation mode to the class in the dictionaru format
-        dic = {
-            "em_mode": em_mode,
-            "em_gain": em_gain,
-            "hss": hss,
-            "preamp": preamp,
-            "binn": binn,
-            "sub_img": sub_img,
-            "max_t_exp": max_t_exp,
-            "min_t_exp": min_t_exp,
-        }
-        self.modos_operacao.append(dic)
+    def write_operation_mode(self, dic):
+        """Append the CCD operation mode intto the class."""
+        self.operation_modes.append(dic)
 
-    def write_list_of_modes(self, lista):
-        # Write an entire list of modes to the class
-        self.modos_operacao = lista
+    def write_list_operation_modes(self, list):
+        """Write an entire list of modes into the class."""
+        self.operation_modes = list
 
-    def get_list_of_modes(self):
-        # returns the list of modes
-        return self.modos_operacao
+    def get_list_operation_modes(self):
+        """Returns the list of modes."""
+        return self.operation_modes
 
-    def clear_list_of_modes(self):
-        # clear the list of modes
-        self.modos_operacao = []
+    def clear_list_operation_modes(self):
+        """Clear the list of operation modes."""
+        self.operation_modes = []

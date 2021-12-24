@@ -1,5 +1,5 @@
 {
-    "snr": 1,
+    "snr": 100,
     "acq_rate": 1,
     "mag": 12,
     "t_exp": [
@@ -7,24 +7,33 @@
         84600
     ],
     "em_mode": [      
-        "Conv"
+        "Conv",
+        "EM"
     ],
-    "max_em_gain": 300,
-    "readout_rate": [      
-        1
+    "em_gain": [2,300],
+    "readout_rate": [ 
+        0.1,     
+        1,
+        10,
+        20,
+        30
     ],
     "preamp": [
-        1
+        1,
+        2
     ],
-    "sub_img": [      
+    "sub_img": [  
+        1024,
+        512,            
         256
     ],
     "bin": [
-        1  
+        1,
+        2
     ],
     "temperature": -70,
     "serial_number": 9917,
-    "use_pre_img": true,
+    "use_pre_img": false,
     "pre_img_name": "CONV_1MHz_PA1_B1_TEXP20_G1.fits",
     "star_coords": [
         100,
@@ -35,8 +44,8 @@
     "export_setup_file": true,
     "export_iterations_file": false,
     "export_bias_file": false,
-    "exp_name": "",
+    "exp_name": "CONV_1MHz_PA1_B1_TEXP20_G1",
     "iterations_number": 10,
     "optimization_algorithm": "TPE",
-    "optimization_parameter": "SNR"
+    "optimization_parameter": "ACQ_RATE"
 }

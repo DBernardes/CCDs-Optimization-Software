@@ -13,24 +13,18 @@ from Read_Noise_Calculation import Read_Noise_Calculation
 class SNR_Calculation:
     def __init__(
         self,
-        t_exp,
-        em_mode,
-        em_gain,
-        hss,
-        preamp,
-        binn,
+        mode,
         ccd_temp,
         sky_flux,
         star_flux,
         n_pix_star,
         serial_number,
     ):
-        self.t_exp = t_exp
-        self.em_mode = em_mode
-        self.em_gain = em_gain
-        self.hss = hss
-        self.preamp = preamp
-        self.binn = binn
+        self.t_exp = mode["t_exp"]
+        self.em_mode = mode["em_mode"]
+        self.readout_rate = mode["readout_rate"]
+        self.preamp = mode["preamp"]
+        self.binn = mode["bin"]
         self.ccd_temp = ccd_temp
         self.sky_flux = sky_flux
         self.star_flux = star_flux
@@ -43,11 +37,16 @@ class SNR_Calculation:
         self.read_noise = 0
         self.noise_factor = 1
         self.em_gain = 1
-        if self.em_mode == 1:
+        if self.em_mode == "EM":
             self.noise_factor = 1.41
-            self.em_gain = em_gain
+            self.em_gain = mode["em_gain"]
+
+        self.set_gain_value()
+        self.calc_RN()
+        self.calc_DC()
 
     def calc_SNR(self):
+
         # This function calculates the SNR of the star
         t_exp = self.t_exp
         em_gain = self.em_gain
@@ -65,7 +64,7 @@ class SNR_Calculation:
         )
         self.SNR = (star * t_exp) / aux
 
-    def calc_minimun_texp_provided_SNR(self, snr):
+    def calc_minimun_texp_provided_snr(self, snr):
         # This function calculates the minimum exposure time needed
         # to achieve a provided value of SNR
         em_gain = self.em_gain
@@ -112,10 +111,10 @@ class SNR_Calculation:
             self.dark_noise = 5.92 * exp(0.0005 * T ** 2 + 0.18 * T)
 
     def calc_RN(self):
-        # Calculates the read noise by using the read noise library
+        # Calculates the read noise using the read noise library
         RN = Read_Noise_Calculation()
         RN.write_operation_mode(
-            self.em_mode, self.em_gain, self.hss, self.preamp, self.binn
+            self.em_mode, self.em_gain, self.readout_rate, self.preamp, self.binn
         )
         RN.calc_read_noise()
         self.read_noise = float(RN.noise)
@@ -123,37 +122,37 @@ class SNR_Calculation:
     def set_gain_value(self):
         # Sets the CCD gain
         em_mode = self.em_mode
-        hss = self.hss
+        readoout_rate = self.readout_rate
         preamp = self.preamp
         gain = 0
-        if em_mode == 1:
-            if hss == 30:
+        if em_mode == "EM":
+            if readoout_rate == 30:
                 if preamp == 1:
                     gain = 17.2
                 if preamp == 2:
                     gain = 5.27
-            if hss == 20:
+            if readoout_rate == 20:
                 if preamp == 1:
                     gain = 16.4
                 if preamp == 2:
                     gain = 4.39
-            if hss == 10:
+            if readoout_rate == 10:
                 if preamp == 1:
                     gain = 16.0
                 if preamp == 2:
                     gain = 3.96
-            if hss == 1:
+            if readoout_rate == 1:
                 if preamp == 1:
                     gain = 15.9
                 if preamp == 2:
                     gain = 3.88
         else:
-            if hss == 1:
+            if readoout_rate == 1:
                 if preamp == 1:
                     gain = 3.37
                 if preamp == 2:
                     gain = 0.8
-            if hss == 0.1:
+            if readoout_rate == 0.1:
                 if preamp == 1:
                     gain = 3.35
                 if preamp == 2:

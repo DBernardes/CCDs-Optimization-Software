@@ -4,24 +4,13 @@
 
 import json
 import os
-import random as rd
-from copy import copy
-from math import ceil
 from sys import exit
 
 from FWHM import FWHM
-
-# import Optimize_SNR_and_AR as osnrar
-# import SNR_Calc as snrc
 from hyperopt import rand, tpe
-
-# import Modos_Operacao_Bib as mob
-# import numpy as np
 from Opt_Acquisition_Rate import Optimize_Acquisition_Rate
 from Opt_SNR import Optimize_SNR
 from Opt_SNR_AR import Opt_SNR_AR
-
-# from useful_functions import get_obs_setup
 
 
 class Optimize_Camera:
@@ -56,10 +45,11 @@ class Optimize_Camera:
         self._BIAS_LEVEL = 500
         self._STAR_RADIUS = 0
         self._STAR_COORDS = [0, 0]
-
+        self.operation_modes = []
         self.input_file_path = input_file_path
         self._read_input_file()
         self._verify_ccd_parameters()
+        self._create_list_operation_modes()
 
         if self.file_parameters["optimization_algorithm"] == "TPE":
             self.optimization_algorithm = tpe.suggest
@@ -92,7 +82,7 @@ class Optimize_Camera:
             "mag": 12,
             "t_exp": [1e-5, 84600],
             "em_mode": ["EM", "Conv"],
-            "max_em_gain": 300,
+            "em_gain": [2, 300],
             "readout_rate": [0.1, 1, 10, 20, 30],
             "preamp": [1, 2],
             "sub_img": [1024, 512, 256],
@@ -121,7 +111,7 @@ class Optimize_Camera:
     def _verify_ccd_parameters(self):
 
         em_mode = self.file_parameters["em_mode"]
-        max_em_gain = self.file_parameters["max_em_gain"]
+        em_gain = self.file_parameters["em_gain"]
         readout_rate = self.file_parameters["readout_rate"]
         preamp = self.file_parameters["preamp"]
         t_exp = self.file_parameters["t_exp"]
@@ -129,24 +119,13 @@ class Optimize_Camera:
         sub_img = self.file_parameters["sub_img"]
         binn = self.file_parameters["bin"]
 
-        self.ccd_operation_mode = {
-            "em_mode": em_mode,
-            "max_em_gain": max_em_gain,
-            "readout_rate": readout_rate,
-            "preamp": preamp,
-            "t_exp": t_exp,
-            "temperature": temperature,
-            "sub_img": sub_img,
-            "bin": binn,
-            "serial_number": self.file_parameters["serial_number"],
-        }
-
         for value in em_mode:
             if value not in ["EM", "Conv"]:
                 raise ValueError(f"Invalid value for the EM mode: {em_mode}")
 
-        if max_em_gain > 300:
-            raise ValueError(f"The em gain out of range [2, 300]: {max_em_gain}")
+        for value in em_gain:
+            if value > 300 or value < 2:
+                raise ValueError(f"The em gain out of range [2, 300]: {em_gain}")
 
         for value in preamp:
             if value not in [1, 2]:
@@ -157,7 +136,7 @@ class Optimize_Camera:
                 raise ValueError(f"Invalid value for the readout rate: {readout_rate}")
             if value == 0.1 and "Conv" not in em_mode:
                 raise ValueError(
-                    f"The EM mode does not have the readout rate of 0.1 MHz."
+                    "The EM mode does not have the readout rate of 0.1 MHz."
                 )
             if value in [10, 20, 30] and "EM" not in em_mode:
                 raise ValueError(
@@ -172,11 +151,46 @@ class Optimize_Camera:
             if value not in [1024, 512, 256]:
                 raise ValueError(f"Invalid value for the binning: {sub_img}")
 
-        if min(t_exp) < 1e-5 or max(t_exp) > 84600:
-            raise ValueError(f"The exposure time out of range [1e-5, 84600]: {t_exp}")
+        for value in t_exp:
+            if value < 1e-5 or value > 84600:
+                raise ValueError(
+                    f"The exposure time out of range [1e-5, 84600]: {t_exp}"
+                )
 
         if temperature < -80 or temperature > 15:
             raise ValueError(f"The temperature out of range [-80, 15]: {temperature}")
+
+    def _create_list_operation_modes(self):
+        em_modes = self.file_parameters["em_mode"]
+        readout_rates = self.file_parameters["readout_rate"]
+        preamps = self.file_parameters["preamp"]
+        t_exps = self.file_parameters["t_exp"]
+        sub_imgs = self.file_parameters["sub_img"]
+        binns = self.file_parameters["bin"]
+
+        for em_mode in em_modes:
+            for readout_rate in readout_rates:
+                if em_mode == "Conv" and readout_rate not in [0.1, 1]:
+                    continue
+                if em_mode == "EM" and readout_rate == 0.1:
+                    continue
+                em_gains = self.file_parameters["em_gain"]
+                if em_mode == "Conv":
+                    em_gains = [1]
+                for binn in binns:
+                    for sub_img in sub_imgs:
+                        for preamp in preamps:
+                            operation_mode = {
+                                "em_mode": em_mode,
+                                "em_gain": em_gains,
+                                "readout_rate": readout_rate,
+                                "preamp": preamp,
+                                "bin": binn,
+                                "sub_img": sub_img,
+                                "t_exp": t_exps,
+                            }
+
+                            self.operation_modes.append(operation_mode)
 
     def _calc_star_sky_flux_from_pre_img(self):
         """Calculates the star flux based on the pre-image data."""
@@ -233,43 +247,33 @@ class Optimize_Camera:
             raise ValueError(f"Unknow optimization parameter: {opt_param}.")
 
     def _optimize_snr(self):
-        oar = Optimize_Acquisition_Rate(
+        opt_ar = Optimize_Acquisition_Rate(
             acquisition_rate=self.file_parameters["acq_rate"],
-            ccd_operation_mode=self.ccd_operation_mode,
         )
-        # Determines those modes which accomplish the acquisition rate requirement
-        oar.determine_operation_modes()
-        obj_lista_modos = oar.read_MOB_obj()
-        if obj_lista_modos.get_list_of_modes() == []:
+
+        opt_ar.write_operation_modes(self.operation_modes)
+        opt_ar.select_operation_modes()
+        operation_modes = opt_ar.read_operation_modes()
+        if operation_modes == []:
             print("\n\t There is no mode that meets the requirements provided.")
             print("\tStopping execution.")
             exit()
 
-        # Creates the class object that performs the SNR optimization
-        OSNR = Optimize_SNR(
+        opt_snr = Optimize_SNR(
             snr_target=self.file_parameters["snr"],
             serial_number=self.file_parameters["serial_number"],
-            ccd_temp=self.file_parameters["temperature"],
+            temperature=self.file_parameters["temperature"],
+            operation_modes=self.operation_modes,
             n_pix_star=self._N_PIX_STAR,
             sky_flux=self._SKY_FLUX,
             star_flux=self.star_flux,
             bias_level=self._BIAS_LEVEL,
         )
-        # Write in the class the list of the modes selected in the previous step
-        OSNR.write_MOB_obj(obj_lista_modos)
-        # Duplicates the list of modes for the PREAMP options 1 and 2.
-        OSNR.duplicate_list_of_modes_for_PA12(self.file_parameters["preamp"])
-        # Removes repeat modes
-        OSNR.remove_repeat_modes()
-        # Select the mode with the largest SNR
-        best_snr = OSNR.calc_best_mode(self.file_parameters["max_em_gain"])
-        # Seeks for the largest allowd sub-image option
-        OSNR.find_sub_img_best_mode()
-        # Prints the best mode
-        OSNR.print_best_mode()
-        # Exports the optimum mode to an external .txt file
+        opt_snr.write_operation_modes(operation_modes)
+        best_snr = opt_snr.calc_best_mode()
+        opt_snr.print_best_mode()
         if self.file_parameters["export_setup_file"]:
-            OSNR.export_optimal_setup(
+            opt_snr.export_optimal_setup(
                 self.input_file_path,
                 self.file_parameters["exp_name"],
                 self._STAR_RADIUS,
@@ -280,54 +284,41 @@ class Optimize_Camera:
         repeat = True
         fa_target = self.file_parameters["acq_rate"]
         while repeat == True:
-            # Starts the object for the determination of the modes that accomplish the minimum acquisition rate
-            OAR = Optimize_Acquisition_Rate(
+            opt_ar = Optimize_Acquisition_Rate(
                 acquisition_rate=self.file_parameters["acq_rate"],
-                ccd_operation_mode=self.ccd_operation_mode,
             )
-            # Determines which modes meet the provided bin and sub-images options
-            OAR.determine_operation_modes()
-            # Returns the object with the selected operation modes
-            obj_lista_modos_FA = OAR.read_MOB_obj()
+            opt_ar.select_operation_modes()
+            operation_modes = opt_ar.read_operation_modes()
             # -------------------------------------------------------------------------
-            # Starts the object for the determination of the modes that accomplish the minimum SNR
-            OSNR = Optimize_SNR(
+
+            opt_snr = Optimize_SNR(
                 serial_number=self.file_parameters["serial_number"],
                 snr_target=self.file_parameters["snr"],
-                ccd_temp=self.file_parameters["temperature"],
+                temperature=self.file_parameters["temperature"],
                 n_pix_star=self._N_PIX_STAR,
                 sky_flux=self._SKY_FLUX,
                 star_flux=self.star_flux,
                 bias_level=self._BIAS_LEVEL,
             )
-            # Write the list of the modes selected in the previous step
-            OSNR.write_MOB_obj(obj_lista_modos_FA)
-            # Determines which modes meet the minimum provided SNR
-            OSNR.determine_operation_modes_minimun_SNR(
-                self.file_parameters["preamp"], self.file_parameters["max_em_gain"]
-            )
-            # Returns the list of selected modes
-            obj_list_of_modes = OSNR.read_MOB_obj()
-            # -------------------------------------------------------------------------
-            # If there is no mode that meets the requirements provided,
-            # the minimum acquisition rate is multiplied by 0.8, and the previous steps are performed again
-            if obj_list_of_modes.get_list_of_modes() == []:
+
+            opt_snr.write_operation_modes(operation_modes)
+            opt_snr.select_operation_modes_minimun_snr()
+            operation_modes = opt_snr.read_operation_modes()
+            if operation_modes == []:
                 self.file_parameters["acq_rate"] *= 0.8
                 repeat = True
             else:
                 repeat = False
-        # Write the list of selected operation modes
-        OAR.write_MOB_obj(obj_list_of_modes)
-        # Determines the operation mode with the best acquisition rate
-        best_mode = OAR.determine_fastest_operation_mode()
-        # Prints on the screen the best mode
-        OAR.print_best_mode()
+
+        opt_ar.write_operation_modes(operation_modes)
+        best_mode = opt_ar.determine_fastest_operation_mode()
+        opt_ar.print_best_mode()
         if fa_target > self.file_parameters["acq_rate"]:
             print("\nUsed FA= ", round(self.file_parameters["acq_rate"], 2), "Hz")
             print("It was not possible to reach the desirable FA")
         # Exports the optimum mode to an external .txt file
         if self.file_parameters["export_setup_file"]:
-            OAR.export_optimal_setup(
+            opt_ar.export_optimal_setup(
                 self.input_file_path,
                 self.file_parameters["exp_name"],
                 self._STAR_RADIUS,
@@ -339,7 +330,7 @@ class Optimize_Camera:
         # Starts the object for the determination of the modes that accomplish the minimum acquisition rate
         OAR = Optimize_Acquisition_Rate(
             acquisition_rate=self.file_parameters["acq_rate"],
-            ccd_operation_mode=self.ccd_operation_mode,
+            operation_mode=self.operation_mode,
         )
         # Determines which modes meet the provided bin and sub-images options
         OAR.determine_operation_modes()
@@ -393,7 +384,7 @@ class Optimize_Camera:
         # Calculates the mean and standard deviation of the SNR and acquisition rate.
         # However, it can happen that the SNR is not reached if the chosen texp and em_gain are very small.
         # In these cases, the function discards the respective value
-        OSNRAR.SNR_FA_ranges(self.ccd_operation_mode)
+        OSNRAR.SNR_FA_ranges(self.operation_mode)
         # Creates the space of states in the hyperopt library format
         OSNRAR.create_space()
         # Runs the optimzation

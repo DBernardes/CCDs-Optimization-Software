@@ -33,11 +33,13 @@ class Read_Noise_Calculation:
 
     def calc_read_noise(self):
         # For the conventional mode, it is returned the table's read noise  value
-        if self.em_mode == 0:
+        if self.em_mode == "Conv":
             self.calc_read_noise_conventional()
         # Para o modo EM, calcula em funcao do ganho_em
-        if self.em_mode == 1:
+        if self.em_mode == "EM":
             self.calc_read_noise_em()
+
+        return self.noise
 
     def calc_read_noise_conventional(self):
         # Based on the operation mode, this function selects the
@@ -65,7 +67,7 @@ class Read_Noise_Calculation:
                     indice_tab = 23
                 if self.binn == 2:
                     indice_tab = 24
-        # Reads the spreadsheet
+
         df = pd.read_csv(
             os.path.join(
                 "OMASS4",
@@ -91,7 +93,6 @@ class Read_Noise_Calculation:
             + str(int(hss))
             + ".csv"
         )
-
         columns = pd.read_csv(tab_name, dtype=np.float64)
         column_noise = columns["Noise (e-)"]
         column_em_gain = columns["EM Gain"]
@@ -99,3 +100,9 @@ class Read_Noise_Calculation:
         f = interp1d(column_em_gain, column_noise)
         # Calculates the read noise
         self.noise = f(self.em_gain)
+
+
+# rn_calc = Read_Noise_Calculation()
+# rn_calc.write_operation_mode("EM", 2, 1, 1, 1)
+# noise = rn_calc.calc_read_noise()
+# print(noise)
