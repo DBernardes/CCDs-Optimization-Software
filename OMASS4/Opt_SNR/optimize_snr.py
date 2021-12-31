@@ -128,7 +128,6 @@ class Optimize_SNR:
                 mode["t_exp"] = [min_t_exp, max_t_exp]
                 mode["em_gain"] = [min_em_gain, max_em_gain]
             new_list.append(mode)
-
         self.operation_modes = new_list
 
     def select_operation_modes_minimun_snr(self):
@@ -141,8 +140,12 @@ class Optimize_SNR:
         """
         new_list = []
         for mode in self.operation_modes:
-            mode["t_exp"] = max(mode["t_exp"])
-            mode["em_gain"] = max(mode["em_gain"])
+            min_t_exp = min(mode["t_exp"])
+            max_t_exp = max(mode["t_exp"])
+            mode["t_exp"] = min_t_exp
+            min_em_gain = min(mode["em_gain"])
+            max_em_gain = max(mode["em_gain"])
+            mode["em_gain"] = min_em_gain
 
             snr_calc = SNR_Calculation(
                 mode,
@@ -153,86 +156,48 @@ class Optimize_SNR:
                 self.serial_number,
             )
             t_exp = snr_calc.calc_minimun_texp_provided_snr(self.snr_target)
-            min_t_exp = min(mode["t_exp"])
-            max_t_exp = max(mode["t_exp"])
             if t_exp > min_t_exp:
                 min_t_exp = t_exp
             if min_t_exp <= max_t_exp:
                 mode["t_exp"] = [min_t_exp, max_t_exp]
+                mode["em_gain"] = [min_em_gain, max_em_gain]
+                if mode["em_mode"] == "Conv":
+                    mode["em_gain"] = [1]
                 new_list.append(mode)
         self.operation_modes = new_list
 
-    def calc_min_snr(self, max_em_gain):
-        # This function calculates the maximum and minimum
-        # values of the SNR for the selected operation modes.
-        max_snr = 0
+    def calc_min_snr(self):
         min_snr = 1e5
         best_mode = {}
-        # iterates each modes of the list of selected modes
-        for mode in self.MOB.get_list_of_modes():
-            em_mode = mode["em_mode"]
-            hss = mode["hss"]
-            binn = mode["binn"]
-            preamp = mode["preamp"]
-            min_t_exp = mode["min_t_exp"]
-            max_em_gain = 0
-            # if the EM mode is conventional, EM gain = 1
-            min_em_gain = 1
-            if mode["em_mode"] == 1:
-                # if the EM mode is EM, EM gain = 2
-                min_em_gain = 2
-                # calculates the CCD gain
-                self.set_gain(em_mode, hss, preamp)
-                # Calculates the maximum EM gain
-                max_em_gain, max_t_exp = self.calc_max_em_gain(
-                    mode["max_t_exp"], mode["min_t_exp"], max_em_gain
-                )
-                # if the returned EM gain is 0, this mode is discarded
-                if max_em_gain == 0:
-                    print(
-                        "The number of photons per pixel is above 100. This mode was rejected."
-                    )
-                    continue
-                # limites the EM gain in 300x
-                if max_em_gain > 300:
-                    max_em_gain = 300
-            # starts the class of the SNR calculation
-            SNRC = SNR_Calculation(
-                min_t_exp,
-                em_mode,
-                max_em_gain,
-                hss,
-                preamp,
-                binn,
+
+        for mode in self.operation_modes:
+            new_mode = copy(mode)
+            new_mode["t_exp"] = min(new_mode["t_exp"])
+            new_mode["em_gain"] = min(new_mode["em_gain"])
+            snr_calc = SNR_Calculation(
+                new_mode,
                 self.temperature,
                 self.sky_flux,
                 self.star_flux,
                 self.n_pix_star,
                 self.serial_number,
             )
-            SNRC.set_gain_value()
-            SNRC.calc_RN()
-            SNRC.calc_DC()
-            SNRC.calc_SNR()
-            # Calculates the SNR for the respective mode
-            snr = SNRC.get_SNR()
-            # if the obtained SNR value is smaller than the current smalest SNR
-            # this new mode is selected as the new minimum
+            snr_calc.calc_SNR()
+            snr = snr_calc.get_SNR()
             if snr < min_snr:
                 min_snr = snr
         self.best_mode = best_mode
         return min_snr
 
     def calc_best_mode(self):
-
         best_snr = 0
         best_modes = []
         for mode in self.operation_modes:
-            mode["t_exp"] = max(mode["t_exp"])
-            mode["em_gain"] = max(mode["em_gain"])
-
+            new_mode = copy(mode)
+            new_mode["t_exp"] = max(new_mode["t_exp"])
+            new_mode["em_gain"] = max(new_mode["em_gain"])
             snr_calc = SNR_Calculation(
-                mode,
+                new_mode,
                 self.temperature,
                 self.sky_flux,
                 self.star_flux,
@@ -243,12 +208,13 @@ class Optimize_SNR:
             snr = snr_calc.get_SNR()
             if snr > best_snr:
                 best_snr = snr
-                best_modes = [mode]
+                best_modes = [new_mode]
             elif snr == best_snr:
-                best_modes.append(mode)
+                best_modes.append(new_mode)
         self.best_modes = best_modes
         self.find_largest_sub_img()
         self.best_snr = best_snr
+
         return best_snr
 
     def find_largest_sub_img(self):

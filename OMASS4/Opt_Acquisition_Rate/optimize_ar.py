@@ -4,6 +4,7 @@
 
 import json
 import os
+from copy import copy
 from sys import exit
 
 from Acq_Rate_Calculation import Acquisition_Rate_Calculation
@@ -36,13 +37,14 @@ class Optimize_Acquisition_Rate:
         """
         new_list = []
         for mode in self.operation_modes:
+            min_t_exp = min(mode["t_exp"])
+            max_t_exp = max(mode["t_exp"])
+            mode["t_exp"] = min_t_exp
             self.arc.write_operation_mode(mode)
             self.arc.seleciona_t_corte()
             acq_rate = self.arc.calc_acquisition_rate()
             if acq_rate >= self.acquisition_rate:
                 new_max_t_exp = self.arc.calculate_maximum_t_exp(self.acquisition_rate)
-                min_t_exp = min(mode["t_exp"])
-                max_t_exp = max(mode["t_exp"])
                 if new_max_t_exp < max_t_exp:
                     max_t_exp = new_max_t_exp
                 mode["t_exp"] = [min_t_exp, max_t_exp]
@@ -50,25 +52,13 @@ class Optimize_Acquisition_Rate:
         self.operation_modes = new_list
 
     def determine_min_acquisition_rate(self):
-        # Given a list of modes,
-        # this functions calculates the highest and the smallest acquisition rates
         min_acq_rate = 1e3
-        # Iterates each mode of the list of selected modes
-        for mode in self.MOB.get_list_of_modes():
-            # Starts the class for the acquisition rate calculation
-            self.arc.write_operation_mode(
-                mode["em_mode"],
-                mode["hss"],
-                mode["binn"],
-                mode["sub_img"],
-                mode["max_t_exp"],
-            )
-            # Selects the cut-off exposure time
+        for mode in self.operation_modes:
+            new_mode = copy(mode)
+            new_mode["t_exp"] = max(new_mode["t_exp"])
+            self.arc.write_operation_mode(new_mode)
             self.arc.seleciona_t_corte()
-            # Calculates tha acquisition rate for the provided mode
             self.arc.calc_acquisition_rate()
-            # If the acquisition rate is smaller than the current smallest acquisition rate,
-            # this value is selected
             if self.arc.acquisition_rate < min_acq_rate:
                 min_acq_rate = float(self.arc.return_acquisition_rate())
         return min_acq_rate
@@ -77,20 +67,16 @@ class Optimize_Acquisition_Rate:
         max_acq_rate = 0
         best_modes = []
         for mode in self.operation_modes:
-            self.arc.write_operation_mode(
-                mode["em_mode"],
-                mode["readout_rate"],
-                mode["bin"],
-                mode["sub_img"],
-                min(mode["t_exp"]),
-            )
+            new_mode = copy(mode)
+            new_mode["t_exp"] = min(new_mode["t_exp"])
+            self.arc.write_operation_mode(new_mode)
             self.arc.seleciona_t_corte()
             self.arc.calc_acquisition_rate()
             if self.arc.acquisition_rate > max_acq_rate:
                 max_acq_rate = float(self.arc.return_acquisition_rate())
-                best_modes = [mode]
+                best_modes = [new_mode]
             if self.arc.acquisition_rate == max_acq_rate:
-                best_modes.append()
+                best_modes.append(new_mode)
             self.best_mode = self.find_largest_sub_img(best_modes)
             self.best_mode["max_acq_rate"] = max_acq_rate
 
@@ -113,10 +99,10 @@ class Optimize_Acquisition_Rate:
         else:
             print("\nConventional Mode")
             print("-----------------")
-        print("Exposure time (s): ", self.best_mode["min_t_exp"])
-        print("HSS: ", self.best_mode["hss"])
+        print("Exposure time (s): ", self.best_mode["t_exp"])
+        print("Readout rate: ", self.best_mode["readout_rate"])
         print("Preamp: ", self.best_mode["preamp"])
-        print("Binning: ", self.best_mode["binn"])
+        print("Binning: ", self.best_mode["bin"])
         print("Sub image: ", self.best_mode["sub_img"])
         print("\nBest Acquisition Rate: ", self.best_mode["max_acq_rate"])
         if self.best_mode["max_acq_rate"] < self.acquisition_rate:

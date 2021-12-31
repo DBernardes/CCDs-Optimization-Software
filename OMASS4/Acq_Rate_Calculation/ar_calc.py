@@ -28,7 +28,7 @@ class Acquisition_Rate_Calculation:
 
     def write_operation_mode(self, operation_mode):
         """Write the provided operation mode to the class."""
-        self.t_exp = min(operation_mode["t_exp"])
+        self.t_exp = operation_mode["t_exp"]
         self.em_mode = operation_mode["em_mode"]
         self.readout_rate = operation_mode["readout_rate"]
         self.binn = operation_mode["bin"]

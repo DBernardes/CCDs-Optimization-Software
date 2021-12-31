@@ -263,7 +263,6 @@ class Optimize_Camera:
             snr_target=self.file_parameters["snr"],
             serial_number=self.file_parameters["serial_number"],
             temperature=self.file_parameters["temperature"],
-            operation_modes=self.operation_modes,
             n_pix_star=self._N_PIX_STAR,
             sky_flux=self._SKY_FLUX,
             star_flux=self.star_flux,
@@ -287,8 +286,10 @@ class Optimize_Camera:
             opt_ar = Optimize_Acquisition_Rate(
                 acquisition_rate=self.file_parameters["acq_rate"],
             )
+            opt_ar.write_operation_modes(self.operation_modes)
             opt_ar.select_operation_modes()
             operation_modes = opt_ar.read_operation_modes()
+
             # -------------------------------------------------------------------------
 
             opt_snr = Optimize_SNR(
@@ -304,6 +305,7 @@ class Optimize_Camera:
             opt_snr.write_operation_modes(operation_modes)
             opt_snr.select_operation_modes_minimun_snr()
             operation_modes = opt_snr.read_operation_modes()
+
             if operation_modes == []:
                 self.file_parameters["acq_rate"] *= 0.8
                 repeat = True
@@ -327,85 +329,69 @@ class Optimize_Camera:
             )
 
     def _optimize_snr_ar(self):
-        # Starts the object for the determination of the modes that accomplish the minimum acquisition rate
-        OAR = Optimize_Acquisition_Rate(
+        opt_ar = Optimize_Acquisition_Rate(
             acquisition_rate=self.file_parameters["acq_rate"],
-            operation_mode=self.operation_mode,
         )
-        # Determines which modes meet the provided bin and sub-images options
-        OAR.determine_operation_modes()
-        # Returns the object with the selected operation modes
-        obj_lista_modos_FA = OAR.read_MOB_obj()
+        opt_ar.write_operation_modes(self.operation_modes)
+        opt_ar.select_operation_modes()
+        operation_modes = opt_ar.read_operation_modes()
+
         # -------------------------------------------------------------------------
         repeat = True
         initial_snr = self.file_parameters["snr"]
         while repeat == True:
-            # Starts the object for the determination of the modes that accomplish the minimum SNR
-            OSNR = Optimize_SNR(
+            opt_snr = Optimize_SNR(
                 serial_number=self.file_parameters["serial_number"],
                 snr_target=self.file_parameters["snr"],
-                ccd_temp=self.file_parameters["temperature"],
+                temperature=self.file_parameters["temperature"],
                 n_pix_star=self._N_PIX_STAR,
                 sky_flux=self._SKY_FLUX,
                 star_flux=self.star_flux,
                 bias_level=self._BIAS_LEVEL,
             )
-            # Write the list of selected operation modes in the previous step
-            OSNR.write_MOB_obj(copy(obj_lista_modos_FA))
-            # Selects those modes that accomplish the minimum SNR
-            OSNR.determine_operation_modes_minimun_SNR(
-                self.file_parameters["preamp"], self.file_parameters["max_em_gain"]
-            )
-            # Returns the list of selected modes
-            obj_list_of_modes = OSNR.read_MOB_obj()
-            # If there is no mode that meets the requirements provided,
-            # the minimum SNR is multiplied by 0.8, and the previous steps are performed again
-            if obj_list_of_modes.get_list_of_modes() == []:
+            opt_snr.write_operation_modes(operation_modes)
+            opt_snr.select_operation_modes_minimun_snr()
+            operation_modes = opt_snr.read_operation_modes()
+
+            if operation_modes == []:
                 self.file_parameters["snr"] *= 0.8
                 repeat = True
             else:
                 repeat = False
         # -------------------------------------------------------------------------
         # Starts the object the optimiza both the SNR and the acquisition rante
-        OSNRAR = Opt_SNR_AR(
+        opt_snr_ar = Opt_SNR_AR(
             snr_target=self.file_parameters["snr"],
             acq_rate=self.file_parameters["acq_rate"],
-            sub_img_modes=self.file_parameters["sub_img"],
-            binn_modes=self.file_parameters["bin"],
             serial_number=self.file_parameters["serial_number"],
-            ccd_temp=self.file_parameters["temperature"],
+            temperature=self.file_parameters["temperature"],
             n_pix_star=self._N_PIX_STAR,
             sky_flux=self._SKY_FLUX,
             star_flux=self.star_flux,
             bias_level=self._BIAS_LEVEL,
         )
-        # Write the selected modes in the previous steps
-        OSNRAR.write_MOB_obj(obj_list_of_modes)
-        # Calculates the mean and standard deviation of the SNR and acquisition rate.
-        # However, it can happen that the SNR is not reached if the chosen texp and em_gain are very small.
-        # In these cases, the function discards the respective value
-        OSNRAR.SNR_FA_ranges(self.operation_mode)
-        # Creates the space of states in the hyperopt library format
-        OSNRAR.create_space()
-        # Runs the optimzation
-        OSNRAR.run_bayesian_opt(
+
+        opt_snr_ar.write_operation_modes(operation_modes)
+        opt_snr_ar.SNR_FA_ranges()
+        opt_snr_ar.create_space()
+        opt_snr_ar.run_bayesian_opt(
             max_evals=self.file_parameters["iterations_number"],
             algorithm=self.optimization_algorithm,
         )
         # Prints the best mode on the screen
-        OSNRAR.print_best_mode()
+        opt_snr_ar.print_best_mode()
         if initial_snr > self.file_parameters["snr"]:
             print("\nUsed SNR= ", round(self.file_parameters["snr"], 2))
             print("It was not possible to reach the desirable SNR")
 
         # Exports the optimzation iterations to a .txt file
         if self.file_parameters["export_iterations_file"]:
-            OSNRAR.creat_log_parameters(
+            opt_snr_ar.creat_log_parameters(
                 self.input_file_path, self.file_parameters["exp_name"]
             )
         # Exports the optimal mode to a .txt file
         if self.file_parameters["export_setup_file"]:
-            OSNRAR.export_optimal_setup(
+            opt_snr_ar.export_optimal_setup(
                 self.input_file_path,
                 self.file_parameters["exp_name"],
                 self._STAR_RADIUS,

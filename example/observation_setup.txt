@@ -1,51 +1,45 @@
 {
-    "snr": 100,
-    "acq_rate": 1,
+    "snr": 50,
+    "acq_rate": 0.5,
     "mag": 12,
     "t_exp": [
-        1e-5,
+        1e-05,
         84600
     ],
-    "em_mode": [      
-        "Conv",
+    "em_mode": [        
         "EM"
     ],
-    "em_gain": [2,300],
-    "readout_rate": [ 
-        0.1,     
-        1,
-        10,
-        20,
-        30
+    "em_gain": [
+        2,
+        300
+    ],
+    "readout_rate": [        
+        10
     ],
     "preamp": [
-        1,
-        2
+        2        
     ],
-    "sub_img": [  
-        1024,
-        512,            
-        256
+    "sub_img": [
+        1024
     ],
     "bin": [
-        1,
-        2
+        1    
     ],
     "temperature": -70,
     "serial_number": 9917,
     "use_pre_img": false,
-    "pre_img_name": "CONV_1MHz_PA1_B1_TEXP20_G1.fits",
+    "pre_img_name": "",
     "star_coords": [
-        100,
-        100
+        0,
+        0
     ],
-    "bias_img_name": "CONV_1MHz_PA1_B1_TEXP20_G1_BIAS.fits",
+    "bias_img_name": "",
     "sky_radius": 20,
-    "export_setup_file": true,
+    "export_setup_file": false,
     "export_iterations_file": false,
     "export_bias_file": false,
-    "exp_name": "CONV_1MHz_PA1_B1_TEXP20_G1",
+    "exp_name": "",
     "iterations_number": 10,
     "optimization_algorithm": "TPE",
-    "optimization_parameter": "ACQ_RATE"
+    "optimization_parameter": "BOTH"
 }

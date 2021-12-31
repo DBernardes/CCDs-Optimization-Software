@@ -25,11 +25,11 @@ def function_fa(parameters=[]):
     t_exp = parameters[0]
     em_mode = parameters[1]
     em_gain = parameters[2]
-    hss = parameters[3]
+    readout_rate = parameters[3]
     preamp = parameters[4]
     binn = parameters[5]
     sub_img = parameters[6]
-    CCD_temp = parameters[7]
+    temperature = parameters[7]
     sky_flux = parameters[8]
     star_flux = parameters[9]
     n_pixels_star = parameters[10]
@@ -37,11 +37,20 @@ def function_fa(parameters=[]):
     max_fa = parameters[14]
     min_fa = parameters[15]
 
-    ARC = Acquisition_Rate_Calculation()
-    ARC.write_operation_mode(em_mode, hss, binn, sub_img, t_exp)
-    ARC.seleciona_t_corte()
-    ARC.calc_acquisition_rate()
-    acq_rate = ARC.acquisition_rate
+    mode = {
+        "t_exp": t_exp,
+        "em_mode": em_mode,
+        "em_gain": em_gain,
+        "readout_rate": readout_rate,
+        "preamp": preamp,
+        "bin": binn,
+        "sub_img": sub_img,
+    }
+    ar_calc = Acquisition_Rate_Calculation()
+    ar_calc.write_operation_mode(mode)
+    ar_calc.seleciona_t_corte()
+    ar_calc.calc_acquisition_rate()
+    acq_rate = ar_calc.acquisition_rate
     norm_acq_rate = (acq_rate - min_fa) / (max_fa - min_fa)
     return norm_acq_rate
 
@@ -50,11 +59,11 @@ def function_snr(parameters=[]):
     t_exp = parameters[0]
     em_mode = parameters[1]
     em_gain = parameters[2]
-    hss = parameters[3]
+    readout_rate = parameters[3]
     preamp = parameters[4]
     binn = parameters[5]
     sub_img = parameters[6]
-    ccd_temp = parameters[7]
+    temperature = parameters[7]
     sky_flux = parameters[8]
     star_flux = parameters[9]
     n_pix_star = parameters[10]
@@ -62,23 +71,27 @@ def function_snr(parameters=[]):
     max_snr = parameters[12]
     min_snr = parameters[13]
     snr_target = parameters[16]
-    SNRC = SNR_Calculation(
-        t_exp=t_exp,
-        em_mode=em_mode,
-        em_gain=em_gain,
-        hss=hss,
-        preamp=preamp,
-        binn=binn,
-        ccd_temp=ccd_temp,
+    mode = {
+        "t_exp": t_exp,
+        "em_mode": em_mode,
+        "em_gain": em_gain,
+        "readout_rate": readout_rate,
+        "preamp": preamp,
+        "bin": binn,
+        "sub_img": sub_img,
+    }
+    snr_calc = SNR_Calculation(
+        mode,
+        temperature=temperature,
         sky_flux=sky_flux,
         star_flux=star_flux,
         n_pix_star=n_pix_star,
         serial_number=serial_number,
     )
-    SNRC.calc_RN()
-    SNRC.calc_DC()
-    SNRC.calc_SNR()
-    snr = SNRC.get_SNR()
+    snr_calc.calc_RN()
+    snr_calc.calc_DC()
+    snr_calc.calc_SNR()
+    snr = snr_calc.get_SNR()
     if snr < snr_target:
         snr = 0
         min_snr = 0
@@ -104,10 +117,8 @@ class Opt_SNR_AR:
         self,
         snr_target,
         acq_rate,
-        sub_img_modes,
-        binn_modes,
+        temperature,
         serial_number,
-        ccd_temp,
         n_pix_star,
         sky_flux,
         star_flux,
@@ -116,13 +127,11 @@ class Opt_SNR_AR:
         self.hss = [[], []]
         self.binn = [[], []]
         self.sub_img = []
-        self.ccd_temp = ccd_temp
+        self.temperature = temperature
         self.serial_number = serial_number
         self.gain = 0
         self.dark_noise = 0
         self.set_dc()
-        self.binn_modes = binn_modes
-        self.sub_img_modes = sub_img_modes
 
         self.sky_flux = sky_flux  # e-/pix/s
         self.star_flux = star_flux  # e-/s
@@ -186,7 +195,7 @@ class Opt_SNR_AR:
         # Calculates the dark current based ib the CCD temperature.
         # These used equations model the dark current of the SPARC4 CCDs,
         # and can be found in: D V Bernardes et al 2018 PASP 130 095002
-        T = self.ccd_temp
+        T = self.temperature
         if self.serial_number == 9914:
             self.dark_noise = 24.66 * np.exp(0.0015 * T ** 2 + 0.29 * T)
         if self.serial_number == 9915:
@@ -196,45 +205,31 @@ class Opt_SNR_AR:
         if self.serial_number == 9917:
             self.dark_noise = 5.92 * np.exp(0.0005 * T ** 2 + 0.18 * T)
 
-    def write_MOB_obj(self, obj):
+    def write_operation_modes(self, _list):
         # Write a object with the list of modes in the class
-        self.MOB = obj
+        self.operation_modes = _list
 
-    def print_MOB_list(self):
-        lista = self.MOB.get_list_of_modes()
-        for modo in lista:
-            print(modo)
-
-    def SNR_FA_ranges(self, ccd_operation_mode):
-        # This function calculates hte minimum and maximum values of the
-        # SNR and the AR for the normalization of the cost function.
-
-        # Starts the class of the SNR optimization
-        OSNR = Optimize_SNR(
+    def SNR_FA_ranges(self):
+        opt_snr = Optimize_SNR(
             snr_target=self.snr_target,
             serial_number=self.serial_number,
-            ccd_temp=self.ccd_temp,
+            temperature=self.temperature,
             n_pix_star=self.n_pix_star,
             sky_flux=self.sky_flux,
             star_flux=self.star_flux,
             bias_level=self.bias_level,
         )
-        OSNR.write_MOB_obj(copy(self.MOB))
-        OSNR.duplicate_list_of_modes_for_PA12(ccd_operation_mode["preamp"])
-        OSNR.remove_repeat_modes()
-        # Calculates the maximum SNR
-        max_snr = OSNR.calc_best_mode(ccd_operation_mode["max_em_gain"])
-        # Calculates the minimum SNR
-        min_snr = OSNR.calc_min_snr(ccd_operation_mode["max_em_gain"])
-        # Starts the class of the acquisition rate optimization
-        OAR = Optimize_Acquisition_Rate(
-            acquisition_rate=self.acq_rate_target, ccd_operation_mode=ccd_operation_mode
+
+        opt_snr.write_operation_modes(self.operation_modes)
+        max_snr = opt_snr.calc_best_mode()
+        min_snr = opt_snr.calc_min_snr()
+
+        opt_ar = Optimize_Acquisition_Rate(
+            acquisition_rate=self.acq_rate_target,
         )
-        OAR.write_MOB_obj(copy(self.MOB))
-        # Calculates the minimum acquisition rate
-        min_fa = OAR.determine_min_acquisition_rate()
-        # Calculates the maximum acquisition rate
-        best_mode, max_fa = OAR.determine_fastest_operation_mode()
+        opt_ar.write_operation_modes(self.operation_modes)
+        min_fa = opt_ar.determine_min_acquisition_rate()
+        best_mode, max_fa = opt_ar.determine_fastest_operation_mode()
         self.max_snr = max_snr
         self.min_snr = min_snr
         self.max_fa = max_fa
@@ -271,126 +266,85 @@ class Opt_SNR_AR:
         return max_em_gain, max_t_exp
 
     def create_space(self):
-        # This function is responsible to get the list of selected modes and
-        # convert it in the hyperopt library space of states
         i = 0
         self.new_list = []
         space_all_modes = []
-        # iterates each mode of the list of selected modes
-        for mode in self.MOB.get_list_of_modes():
-            max_em_gain = 0
-            max_t_exp = mode["max_t_exp"]
-            min_t_exp = mode["min_t_exp"]
-            # the exposure time is uniform between its maximum and minimu vales
+        for mode in self.operation_modes:
+            new_mode = copy(mode)
+            max_em_gain = max(mode["em_gain"])
+            min_em_gain = min(mode["em_gain"])
+            max_t_exp = max(mode["t_exp"])
+            min_t_exp = min(mode["t_exp"])
             t_exp = hp.uniform("t_exp_" + str(i), min_t_exp, max_t_exp)
-            # the EM mode is a discreet choice between 0 and 1.
             em_mode = hp.choice("em_mode_" + str(i), [mode["em_mode"]])
-            # if the EM mode is conventional, the em gain is fixed in 1
             em_gain = hp.choice("em_gain_" + str(i), [max_em_gain])
-            # if the EM mode is EM...
-            if mode["em_mode"] == 1:
-                # Sets the CCD gain
-                self.set_gain(mode["em_mode"], mode["hss"], mode["preamp"])
-                # Calculates the maximum EM gain
-                max_em_gain, max_t_exp = self.calc_max_em_gain(max_t_exp, min_t_exp)
-                # Recreates the space of states for the exposure time
-                t_exp = hp.uniform("t_exp_" + str(i), min_t_exp, max_t_exp)
-                # if the EM gain is zero, the mode is discarded
-                if max_em_gain == 0:
-                    print(
-                        "The number of photons per pixel is above 100. This mode was rejected."
-                    )
-                    continue
-                # limits the maximum EM gain in 300x
-                if max_em_gain > 300:
-                    max_em_gain = 300
-                # Sets the EM gain as uniform within its maximum and minimum values
-                em_gain = hp.uniform("em_gain_" + str(i), 2, max_em_gain)
-            # the HSS is a discreet choice between its allowed values
-            hss = hp.choice("hss_" + str(i), [mode["hss"]])
-            # the PREAMP is a discreet choice between 1 and 2
+            if mode["em_mode"] == "EM":
+                em_gain = hp.uniform("em_gain_" + str(i), min_em_gain, max_em_gain)
+            readout_rate = hp.choice("hss_" + str(i), [mode["readout_rate"]])
             preamp = hp.choice("preamp_" + str(i), [mode["preamp"]])
-            # the BINNING is a discreet choice between 1 and 2
-            binn = hp.choice("binn_" + str(i), [mode["binn"]])
-            # the Sub-Image is a discreet choice between its allowed values
+            binn = hp.choice("binn_" + str(i), [mode["bin"]])
             sub_img = hp.choice("sub_img_" + str(i), [mode["sub_img"]])
-            # the CCD temperature is fixed for the povided value
-            ccd_temp = hp.choice("ccd_temp_" + str(i), [self.ccd_temp])
-            # the sky flux is fixed for the povided value
+            temperature = hp.choice("temperature_" + str(i), [self.temperature])
             sky_flux = hp.choice("sky_flux_" + str(i), [self.sky_flux])
-            # the star flux is fixed for the povided value
             star_flux = hp.choice("obj_flux_" + str(i), [self.star_flux])
-            # the number of pixels is fixed for the povided value
             n_pix_star = hp.choice("n_pix_star_" + str(i), [self.n_pix_star])
-            # the serial number is fixed for the povided value
             serial_number = hp.choice("serial_number" + str(i), [self.serial_number])
-            # creates a list with the CCD operation mode in the hyperopt space of states
             new_mode = [
                 t_exp,
                 em_mode,
                 em_gain,
-                hss,
+                readout_rate,
                 preamp,
                 binn,
                 sub_img,
-                ccd_temp,
+                temperature,
                 sky_flux,
                 star_flux,
                 n_pix_star,
                 serial_number,
             ]
-            # Appends this mode to a list
             self.space_all_modes.append(new_mode)
-            # This is a mirror list of the hyperopt list for later data management
             self.new_list.append(mode)
             i += 1
         self.space = hp.choice("operation_mode", self.space_all_modes)
 
     def run_bayesian_opt(self, max_evals, algorithm=tpe.suggest):
         gc.collect()
-        # Create the algorithm
         tpe_algo = algorithm
-        # Create a trials object
         self.tpe_trials = Trials()
-        # Normalization parameters
         max_snr = self.max_snr
         min_snr = self.min_snr
         max_fa = self.max_fa
         min_fa = self.min_fa
-        # Run evals with the tpe algorithm
         best_mode = fmin(
             fn=function,
             space=self.space + [max_snr, min_snr, max_fa, min_fa, self.snr_target],
             algo=tpe_algo,
             trials=self.tpe_trials,
             max_evals=max_evals,
-            # rstate=np.random.RandomState(50),
         )
-        # Gets the best mode
         index_list_modes = best_mode["operation_mode"]
         chosen_mode = self.new_list[index_list_modes]
-        # Recovers the mode parameters through the mirror list
         t_exp = best_mode["t_exp_" + str(index_list_modes)]
         em_mode = chosen_mode["em_mode"]
         em_gain = best_mode["em_gain_" + str(index_list_modes)]
-        hss = chosen_mode["hss"]
+        readout_rate = chosen_mode["readout_rate"]
         preamp = chosen_mode["preamp"]
-        binn = chosen_mode["binn"]
+        binn = chosen_mode["bin"]
         sub_img = chosen_mode["sub_img"]
-        # Write the best mode as a dictionary format
         self.best_mode = {
             "t_exp": t_exp,
             "em_mode": em_mode,
             "em_gain": em_gain,
-            "hss": hss,
+            "readout_rate": readout_rate,
             "preamp": preamp,
-            "binn": binn,
+            "bin": binn,
             "sub_img": sub_img,
             "SNR*FA": -self.tpe_trials.best_trial["result"]["loss"],
         }
 
     def print_best_mode(self):
-        if self.best_mode["em_mode"] == 1:
+        if self.best_mode["em_mode"] == "EM":
             print("\nEM Mode")
             print("-------")
             print("EM gain: ", self.best_mode["em_gain"])
@@ -398,9 +352,9 @@ class Opt_SNR_AR:
             print("\nConventional Mode")
             print("-----------------")
         print("Exposure time (s): ", self.best_mode["t_exp"])
-        print("HSS: ", self.best_mode["hss"])
+        print("Readout rate: ", self.best_mode["readout_rate"])
         print("Preamp: ", self.best_mode["preamp"])
-        print("Binning: ", self.best_mode["binn"])
+        print("Binning: ", self.best_mode["bin"])
         print("Sub image: ", self.best_mode["sub_img"])
         print("\nBest SNR*FA: ", self.best_mode["SNR*FA"])
 
@@ -432,18 +386,18 @@ class Opt_SNR_AR:
             # sets the dictionary EM mode as conventional
             dic["em_mode"] = "CONV"
             # if the EM mode is EM, sets the dictionary EM mode as EM
-            if mode["em_mode"] == 1:
+            if mode["em_mode"] == "EM":
                 dic["em_mode"] = "EM"
             # Pops the EM gain values obtained in the previous step
             dic["em_gain"] = int(dic_em_gain[str(item)].pop(0))
             # gets the HHS from the mirror list
-            dic["hss"] = int(mode["hss"])
-            if mode["hss"] < 1:
-                dic["hss"] = float(mode["hss"])
+            dic["readout_rate"] = int(mode["readout_rate"])
+            if mode["readout_rate"] < 1:
+                dic["readout_rate"] = float(mode["readout_rate"])
             # gets the PREAMP from the mirror list
             dic["preamp"] = int(mode["preamp"])
             # gets the BINNING from the mirror list
-            dic["bin"] = int(mode["binn"])
+            dic["bin"] = int(mode["bin"])
             # gets the SUB-IMAGE from the mirror list
             dic["sub_img"] = self.best_mode["sub_img"]
             # sets the kinetic series length as 1 (for posterior data treatment)
@@ -490,31 +444,14 @@ class Opt_SNR_AR:
     def export_optimal_setup(
         self, img_directory, file_base_name, star_radius, obj_coords, snr_target
     ):
-        # This function exports the optimal mode obtained by the hyperopt library to a .txt file.
-        em_mode = self.best_mode["em_mode"]
-        hss = self.best_mode["hss"]
-        binn = self.best_mode["binn"]
-        sub_img = self.best_mode["sub_img"]
-        t_exp = self.best_mode["t_exp"]
-        em_gain = self.best_mode["em_gain"]
-        preamp = self.best_mode["preamp"]
-        # Start the SNR calculation library
         SNRC = SNR_Calculation(
-            t_exp,
-            em_mode,
-            em_gain,
-            hss,
-            preamp,
-            binn,
-            self.ccd_temp,
+            self.best_mode,
+            self.temperature,
             self.sky_flux,
             self.star_flux,
             self.n_pix_star,
             self.serial_number,
         )
-        SNRC.set_gain_value()
-        SNRC.calc_RN()
-        SNRC.calc_DC()
         SNRC.calc_SNR()
         # Calculates the SNR value for the respective optimum mode.
         # This step is needed because it is not possible recover
@@ -522,7 +459,7 @@ class Opt_SNR_AR:
         snr = SNRC.get_SNR()
         # Starts the acquisition rate calculation class
         ARC = Acquisition_Rate_Calculation()
-        ARC.write_operation_mode(em_mode, hss, binn, sub_img, t_exp)
+        ARC.write_operation_mode(self.best_mode)
         ARC.seleciona_t_corte()
         # Calculates the acquisition rate value.
         # This step is needed because it is not possible recover
@@ -530,36 +467,19 @@ class Opt_SNR_AR:
         ARC.calc_acquisition_rate()
         fa = float(ARC.return_acquisition_rate())
 
-        dic = {}
-        # Creates a dictionary with the optimum mode
-        if self.best_mode["em_mode"] == 1:
-            dic["em_mode"] = "EM"
-        else:
-            dic["em_mode"] = "CONV"
-        dic["em_gain"] = int(self.best_mode["em_gain"])
-        dic["t_exp"] = self.best_mode["t_exp"]
-        dic["hss"] = self.best_mode["hss"]
-        dic["preamp"] = self.best_mode["preamp"]
-        dic["bin"] = self.best_mode["binn"]
-        dic["sub_img"] = self.best_mode["sub_img"]
-        dic["output"] = self.best_mode["SNR*FA"]
-        dic["obs_type"] = "object"
-        dic["img_name"] = file_base_name + "_OPTMODE.fits"
-        dic["star_radius"] = star_radius
-        try:
-            dic["obj_coords"] = "(%i,%i)" % (obj_coords[0], obj_coords[1])
-        except:
-            1
-        dic["kinetic_series_length"] = 1
-        dic["max_snr"] = self.max_snr
-        dic["min_snr"] = self.min_snr
-        dic["max_fa"] = self.max_fa
-        dic["min_fa"] = self.min_fa
-        dic["snr_target"] = snr_target
-        dic["SNR"] = snr
-        dic["FA"] = fa
+        self.best_mode["obs_type"] = "object"
+        self.best_mode["img_name"] = file_base_name + "_OPTMODE.fits"
+        self.best_mode["star_radius"] = star_radius
+        self.best_mode["obj_coords"] = "(%i,%i)" % (obj_coords[0], obj_coords[1])
+        self.best_mode["max_snr"] = self.max_snr
+        self.best_mode["min_snr"] = self.min_snr
+        self.best_mode["max_fa"] = self.max_fa
+        self.best_mode["min_fa"] = self.min_fa
+        self.best_mode["snr_target"] = snr_target
+        self.best_mode["SNR"] = snr
+        self.best_mode["AR"] = fa
         file_name = os.path.join(img_directory, file_base_name + "_OPTSETUP.txt")
         # Write the optimum mode to a .txt file in the json format
         with open(file_name, "w") as arq:
-            json.dump(dic, arq, indent=4, sort_keys=True)
+            json.dump(self.best_mode, arq, indent=4, sort_keys=True)
             arq.close()

@@ -14,7 +14,7 @@ class SNR_Calculation:
     def __init__(
         self,
         mode,
-        ccd_temp,
+        temperature,
         sky_flux,
         star_flux,
         n_pix_star,
@@ -25,7 +25,7 @@ class SNR_Calculation:
         self.readout_rate = mode["readout_rate"]
         self.preamp = mode["preamp"]
         self.binn = mode["bin"]
-        self.ccd_temp = ccd_temp
+        self.temperature = temperature
         self.sky_flux = sky_flux
         self.star_flux = star_flux
         self.n_pix_star = n_pix_star
@@ -100,7 +100,7 @@ class SNR_Calculation:
         # Calculates the dark current based ib the CCD temperature.
         # These used equations model the dark current of the SPARC4 CCDs,
         # and can be found in: D V Bernardes et al 2018 PASP 130 095002
-        T = self.ccd_temp
+        T = self.temperature
         if self.serial_number == 9914:
             self.dark_noise = 24.66 * exp(0.0015 * T ** 2 + 0.29 * T)
         if self.serial_number == 9915:
