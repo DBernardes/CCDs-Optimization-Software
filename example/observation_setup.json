@@ -1,29 +1,31 @@
 {
-    "snr": 50,
-    "acq_rate": 0.5,
+    "snr": 100,
+    "acq_rate": 1,
     "mag": 12,
     "t_exp": [
         1e-05,
         84600
     ],
     "em_mode": [        
-        "EM"
+        "Conv"
     ],
     "em_gain": [
         2,
         300
     ],
-    "readout_rate": [        
-        10
+    "readout_rate": [
+        0.1,
+        1       
     ],
     "preamp": [
-        2        
+        1        
     ],
     "sub_img": [
         1024
+     
     ],
     "bin": [
-        1    
+        1      
     ],
     "temperature": -70,
     "serial_number": 9917,
@@ -35,7 +37,7 @@
     ],
     "bias_img_name": "",
     "sky_radius": 20,
-    "export_setup_file": false,
+    "export_setup_file": true,
     "export_iterations_file": false,
     "export_bias_file": false,
     "exp_name": "",

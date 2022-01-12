@@ -359,79 +359,51 @@ class Opt_SNR_AR:
         print("\nBest SNR*FA: ", self.best_mode["SNR*FA"])
 
     def creat_log_parameters(self, path, file_base_name):
-        # In this function, it is created a file with the log of the used parameters of each hyperopt iteration.
-
-        # Get the hyperopt trials
         opt_log = self.tpe_trials.idxs_vals[1]
         op_modes_list = opt_log["operation_mode"]
         dic_em_gain = {}
         dic_t_exp = {}
-        # sorts the iterations by the index and uses it to get the EM gain and exposure time parameters
-        # in the same order of the trials of the operation modes
         for item, count in collections.Counter(op_modes_list).items():
-            # Get the current EM gain value by the hyperopt log
             dic_em_gain[str(item)] = opt_log["em_gain_" + str(item)]
-            # Get the current exposure time value by the hyperopt log
             dic_t_exp[str(item)] = opt_log["t_exp_" + str(item)]
 
         dic = {}
-        # opens a .txt file to record the hyperopt trials
-        arq = open(path + file_base_name + "_LOG.txt", "w")
-        # iterates the trials
+        arq = open(path + file_base_name + "_LOG.json", "w")
         for i in range(len(op_modes_list)):
-            # get the index of the trial
             item = op_modes_list[i]
-            # get the current operation mode by the mirror list
             mode = self.new_list[item]
-            # sets the dictionary EM mode as conventional
-            dic["em_mode"] = "CONV"
-            # if the EM mode is EM, sets the dictionary EM mode as EM
-            if mode["em_mode"] == "EM":
-                dic["em_mode"] = "EM"
-            # Pops the EM gain values obtained in the previous step
             dic["em_gain"] = int(dic_em_gain[str(item)].pop(0))
-            # gets the HHS from the mirror list
             dic["readout_rate"] = int(mode["readout_rate"])
             if mode["readout_rate"] < 1:
                 dic["readout_rate"] = float(mode["readout_rate"])
-            # gets the PREAMP from the mirror list
             dic["preamp"] = int(mode["preamp"])
-            # gets the BINNING from the mirror list
             dic["bin"] = int(mode["bin"])
-            # gets the SUB-IMAGE from the mirror list
             dic["sub_img"] = self.best_mode["sub_img"]
-            # sets the kinetic series length as 1 (for posterior data treatment)
             dic["kinetic_series_length"] = 1
-            # sets the observation type as object
             dic["obs_type"] = "object"
-            # sets the star radius as zero
             dic["star_radius"] = 0
-            # sets the coordinates of the object as ''
             dic["obj_coords"] = ""
             num = str(i)
             while len(num) < 3:
                 num = "0" + num
-            # sets the name of the used pre-image
             dic["img_name"] = file_base_name + "_O_" + num + ".fits"
-            # Pops the exposure time values obtained in the previous step
             dic["t_exp"] = dic_t_exp[str(item)].pop(0)
-            # sets the values of the cost function
             dic["output"] = -self.tpe_trials.results[i]["loss"]
-            # write the hyperopt trial to the .txt file in the json format
             json.dump(dic, arq, sort_keys=True)
             arq.write("\n")
         arq.close()
 
     def create_bias_list(self, path, file_base_name):
-        # This function creates a list of bias images with the same operation mode
-        # used in the hyperopt trials. This list is created to be used
-        # in an automatic image acquisition software.
-        # This function works by reading the written modes by the creat_log_parameters() function,
-        # and replacing the exposure time value by 0.00001 s.
-        arq = open(path + file_base_name + "_LOG.txt", "r")
+        """This function creates a list of bias images with the same operation mode
+        used in the hyperopt trials. This list is created to be used
+        in an automatic image acquisition software.
+        This function works by reading the written modes by the creat_log_parameters() function,
+        and replacing the exposure time value by 0.00001 s"""
+
+        arq = open(path + file_base_name + "_LOG.json", "r")
         lines = arq.read().splitlines()
         arq.close()
-        arq = open(path + file_base_name + "_BIAS.txt", "w")
+        arq = open(path + file_base_name + "_BIAS.json", "w")
         for line in lines:
             line = json.loads(line)
             line["t_exp"] = 1e-5
@@ -453,33 +425,23 @@ class Opt_SNR_AR:
             self.serial_number,
         )
         SNRC.calc_SNR()
-        # Calculates the SNR value for the respective optimum mode.
-        # This step is needed because it is not possible recover
-        # the maximum SNR used for the normalization
         snr = SNRC.get_SNR()
-        # Starts the acquisition rate calculation class
         ARC = Acquisition_Rate_Calculation()
         ARC.write_operation_mode(self.best_mode)
         ARC.seleciona_t_corte()
-        # Calculates the acquisition rate value.
-        # This step is needed because it is not possible recover
-        # the maximum acquisition rate used for the normalization
         ARC.calc_acquisition_rate()
-        fa = float(ARC.return_acquisition_rate())
+        acq_rate = float(ARC.return_acquisition_rate())
 
-        self.best_mode["obs_type"] = "object"
-        self.best_mode["img_name"] = file_base_name + "_OPTMODE.fits"
         self.best_mode["star_radius"] = star_radius
-        self.best_mode["obj_coords"] = "(%i,%i)" % (obj_coords[0], obj_coords[1])
+        self.best_mode["obj_coords"] = (obj_coords[0], obj_coords[1])
         self.best_mode["max_snr"] = self.max_snr
         self.best_mode["min_snr"] = self.min_snr
-        self.best_mode["max_fa"] = self.max_fa
-        self.best_mode["min_fa"] = self.min_fa
+        self.best_mode["max_acq_rate"] = self.max_fa
+        self.best_mode["min_acq_rate"] = self.min_fa
         self.best_mode["snr_target"] = snr_target
         self.best_mode["SNR"] = snr
-        self.best_mode["AR"] = fa
-        file_name = os.path.join(img_directory, file_base_name + "_OPTSETUP.txt")
-        # Write the optimum mode to a .txt file in the json format
+        self.best_mode["ACQ_RATE"] = acq_rate
+        file_name = os.path.join(img_directory, file_base_name + "_OPTSETUP.json")
         with open(file_name, "w") as arq:
             json.dump(self.best_mode, arq, indent=4, sort_keys=True)
             arq.close()

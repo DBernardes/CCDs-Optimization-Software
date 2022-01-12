@@ -4,10 +4,12 @@
 
 import json
 import os
+from copy import copy
 from sys import exit
 
 from FWHM import FWHM
 from hyperopt import rand, tpe
+from hyperopt.pyll.base import repeat
 from Opt_Acquisition_Rate import Optimize_Acquisition_Rate
 from Opt_SNR import Optimize_SNR
 from Opt_SNR_AR import Opt_SNR_AR
@@ -34,7 +36,7 @@ class Optimize_Camera:
 
     """
 
-    _INPUT_FILE_NAME = "observation_setup.txt"
+    _INPUT_FILE_NAME = "observation_setup.json"
     _SKY_FLUX = 12.298897076737294  # e-/pix/s
     _HATS24_FLUX = 56122.295000000006  # e-/s
     _N_PIX_STAR = 305
@@ -73,7 +75,7 @@ class Optimize_Camera:
                 file.close()
         except Exception:
             self._create_input_file()
-            raise ValueError("Fill in the configuration file.")
+            print("The configuration file was not found. A standard file was created.")
 
     def _create_input_file(self):
         file_parameters = {
@@ -89,7 +91,7 @@ class Optimize_Camera:
             "bin": [1, 2],
             "temperature": -70,
             "serial_number": 9917,
-            "use_pre_img": True,
+            "use_pre_img": False,
             "pre_img_name": "",
             "star_coords": [0, 0],
             "bias_img_name": "",
@@ -247,17 +249,14 @@ class Optimize_Camera:
             raise ValueError(f"Unknow optimization parameter: {opt_param}.")
 
     def _optimize_snr(self):
+        operation_modes = [copy(mode) for mode in self.operation_modes]
         opt_ar = Optimize_Acquisition_Rate(
             acquisition_rate=self.file_parameters["acq_rate"],
         )
 
-        opt_ar.write_operation_modes(self.operation_modes)
+        opt_ar.write_operation_modes(operation_modes)
         opt_ar.select_operation_modes()
         operation_modes = opt_ar.read_operation_modes()
-        if operation_modes == []:
-            print("\n\t There is no mode that meets the requirements provided.")
-            print("\tStopping execution.")
-            exit()
 
         opt_snr = Optimize_SNR(
             snr_target=self.file_parameters["snr"],
@@ -282,11 +281,13 @@ class Optimize_Camera:
     def _optimize_ar(self):
         repeat = True
         fa_target = self.file_parameters["acq_rate"]
+
         while repeat == True:
             opt_ar = Optimize_Acquisition_Rate(
                 acquisition_rate=self.file_parameters["acq_rate"],
             )
-            opt_ar.write_operation_modes(self.operation_modes)
+            operation_modes = [copy(mode) for mode in self.operation_modes]
+            opt_ar.write_operation_modes(operation_modes)
             opt_ar.select_operation_modes()
             operation_modes = opt_ar.read_operation_modes()
 
@@ -308,6 +309,10 @@ class Optimize_Camera:
 
             if operation_modes == []:
                 self.file_parameters["acq_rate"] *= 0.8
+                print("\nThere is no mode that meet the provided requirements.")
+                print(
+                    f"The optimization will be repeated with 80 % of the acquisition rate: {self.file_parameters['acq_rate']} fps."
+                )
                 repeat = True
             else:
                 repeat = False
@@ -315,10 +320,6 @@ class Optimize_Camera:
         opt_ar.write_operation_modes(operation_modes)
         best_mode = opt_ar.determine_fastest_operation_mode()
         opt_ar.print_best_mode()
-        if fa_target > self.file_parameters["acq_rate"]:
-            print("\nUsed FA= ", round(self.file_parameters["acq_rate"], 2), "Hz")
-            print("It was not possible to reach the desirable FA")
-        # Exports the optimum mode to an external .txt file
         if self.file_parameters["export_setup_file"]:
             opt_ar.export_optimal_setup(
                 self.input_file_path,
@@ -329,17 +330,16 @@ class Optimize_Camera:
             )
 
     def _optimize_snr_ar(self):
-        opt_ar = Optimize_Acquisition_Rate(
-            acquisition_rate=self.file_parameters["acq_rate"],
-        )
-        opt_ar.write_operation_modes(self.operation_modes)
-        opt_ar.select_operation_modes()
-        operation_modes = opt_ar.read_operation_modes()
-
-        # -------------------------------------------------------------------------
         repeat = True
-        initial_snr = self.file_parameters["snr"]
         while repeat == True:
+            opt_ar = Optimize_Acquisition_Rate(
+                acquisition_rate=self.file_parameters["acq_rate"],
+            )
+            operation_modes = [copy(mode) for mode in self.operation_modes]
+            opt_ar.write_operation_modes(operation_modes)
+            opt_ar.select_operation_modes()
+            operation_modes = opt_ar.read_operation_modes()
+
             opt_snr = Optimize_SNR(
                 serial_number=self.file_parameters["serial_number"],
                 snr_target=self.file_parameters["snr"],
@@ -354,12 +354,17 @@ class Optimize_Camera:
             operation_modes = opt_snr.read_operation_modes()
 
             if operation_modes == []:
-                self.file_parameters["snr"] *= 0.8
+                self.file_parameters["snr"] *= 0.9
+                self.file_parameters["acq_rate"] *= 0.9
+                print("\nThere is no mode that meet the provided requirements.")
+                print(
+                    f"The optimization will be repeated with 90 % of the acquisition rate ({self.file_parameters['acq_rate']} fps) and the SNR ({self.file_parameters['snr']}).\n "
+                )
                 repeat = True
             else:
                 repeat = False
         # -------------------------------------------------------------------------
-        # Starts the object the optimiza both the SNR and the acquisition rante
+
         opt_snr_ar = Opt_SNR_AR(
             snr_target=self.file_parameters["snr"],
             acq_rate=self.file_parameters["acq_rate"],
@@ -378,18 +383,11 @@ class Optimize_Camera:
             max_evals=self.file_parameters["iterations_number"],
             algorithm=self.optimization_algorithm,
         )
-        # Prints the best mode on the screen
         opt_snr_ar.print_best_mode()
-        if initial_snr > self.file_parameters["snr"]:
-            print("\nUsed SNR= ", round(self.file_parameters["snr"], 2))
-            print("It was not possible to reach the desirable SNR")
-
-        # Exports the optimzation iterations to a .txt file
         if self.file_parameters["export_iterations_file"]:
             opt_snr_ar.creat_log_parameters(
                 self.input_file_path, self.file_parameters["exp_name"]
             )
-        # Exports the optimal mode to a .txt file
         if self.file_parameters["export_setup_file"]:
             opt_snr_ar.export_optimal_setup(
                 self.input_file_path,

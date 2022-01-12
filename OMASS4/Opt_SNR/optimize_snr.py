@@ -240,7 +240,7 @@ class Optimize_SNR:
         print("Sub image: ", self.best_mode["sub_img"])
         print("\nBest SNR: ", self.best_snr)
         if self.snr_target > self.best_snr:
-            print("\nIt was not possible to reach the provided SNR.")
+            print("\nThe provided SNR could not be reach.")
 
     def export_optimal_setup(
         self, img_directory, file_base_name, star_radius, obj_coords
@@ -255,7 +255,7 @@ class Optimize_SNR:
         if file_base_name != "":
             file_base_name += "_"
 
-        file_name = os.path.join(img_directory, file_base_name + "OPTSETUP.txt")
+        file_name = os.path.join(img_directory, file_base_name + "OPTSETUP.json")
         with open(file_name, "w") as arq:
             json.dump(self.best_mode, arq, indent=4, sort_keys=True)
             arq.close()

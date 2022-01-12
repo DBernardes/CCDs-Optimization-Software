@@ -1,0 +1,15 @@
+{
+    "FA": 0.8,
+    "bin": 1,
+    "em_gain": [
+        1
+    ],
+    "em_mode": "Conv",
+    "max_acq_rate": 0.9810089974421131,
+    "obj_coords": "(0,0)",
+    "preamp": 1,
+    "readout_rate": 1,
+    "star_radius": 0,
+    "sub_img": 1024,
+    "t_exp": 0.25545558397652013
+}
