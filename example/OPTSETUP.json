@@ -1,15 +1,22 @@
 {
-    "FA": 0.8,
-    "bin": 1,
-    "em_gain": [
-        1
+    "ACQ_RATE": 4.148937129217707,
+    "SNR": 108.19968054897865,
+    "SNR*FA": 0.11343032869842717,
+    "bin": 2,
+    "em_gain": 145.89635845507718,
+    "em_mode": "EM",
+    "max_acq_rate": 7.442010449430328,
+    "max_snr": 300.80372073031697,
+    "min_acq_rate": 1.0,
+    "min_snr": 49.99999999999999,
+    "obj_coords": [
+        101,
+        101
     ],
-    "em_mode": "Conv",
-    "max_acq_rate": 0.9810089974421131,
-    "obj_coords": "(0,0)",
-    "preamp": 1,
+    "preamp": 2,
     "readout_rate": 1,
-    "star_radius": 0,
-    "sub_img": 1024,
-    "t_exp": 0.25545558397652013
+    "snr_target": 50,
+    "star_radius": 22.30674367248861,
+    "sub_img": 256,
+    "t_exp": 0.241025585313835
 }

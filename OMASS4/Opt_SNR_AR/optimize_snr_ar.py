@@ -433,7 +433,7 @@ class Opt_SNR_AR:
         acq_rate = float(ARC.return_acquisition_rate())
 
         self.best_mode["star_radius"] = star_radius
-        self.best_mode["obj_coords"] = (obj_coords[0], obj_coords[1])
+        self.best_mode["obj_coords"] = [int(coord) for coord in obj_coords]
         self.best_mode["max_snr"] = self.max_snr
         self.best_mode["min_snr"] = self.min_snr
         self.best_mode["max_acq_rate"] = self.max_fa
@@ -441,7 +441,11 @@ class Opt_SNR_AR:
         self.best_mode["snr_target"] = snr_target
         self.best_mode["SNR"] = snr
         self.best_mode["ACQ_RATE"] = acq_rate
-        file_name = os.path.join(img_directory, file_base_name + "_OPTSETUP.json")
+
+        suffix = "_OPTSETUP.json"
+        if file_base_name == "":
+            suffix = "OPTSETUP.json"
+        file_name = os.path.join(img_directory, file_base_name + suffix)
         with open(file_name, "w") as arq:
             json.dump(self.best_mode, arq, indent=4, sort_keys=True)
             arq.close()

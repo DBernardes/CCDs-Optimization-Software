@@ -76,10 +76,11 @@ class Optimize_Camera:
         except Exception:
             self._create_input_file()
             print("The configuration file was not found. A standard file was created.")
+            exit()
 
     def _create_input_file(self):
         file_parameters = {
-            "snr": 100,
+            "snr": 50,
             "acq_rate": 1,
             "mag": 12,
             "t_exp": [1e-5, 84600],
