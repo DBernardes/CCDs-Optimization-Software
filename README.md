@@ -52,7 +52,7 @@ Therefore, the optimum mode for the CCD will be given by the set of parameters o
     <img src="https://github.com/DBernardes/OMASS4/blob/main/Images/iterations_OMASS4.png" />
 </p>
 
-## Running the OMASS4
+## Installing the OMASS4
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. 
 
@@ -71,12 +71,12 @@ To install these packages it is suggested to use the pip command as follows
 pip install <package_name>
 ```
 
-### Installing
-Clone this repo using ``` git clone https://github.com/DBernardes/OMASS4.git ```
+Finally, clone this repo using ``` git clone https://github.com/DBernardes/OMASS4.git ```
 
-## Running the tests
+## Running a simple test
 
-To run a simple test, there is an image created artificially in the example directory. If you run the \_\_main\_\_.py file, the OMASS4 will be executed over this image. You can choose between the options to optimize the SNR, the acquisition rate, or both parameters providing the option 1, 2, or 3 for the optimize function, respectively. Also, you can choose to use or not the pre-image available changing the (y/n) parameter in the observation_setup.txt file. When the execution is done, the optimum mode will be printed on the screen, and a .txt file with the resulting information will be created in the image directory.
+To run a simple test, there is a directory named "example". In this directory, there are some files that you can use to run the test. These files are an artificial image of a star, a bias image, and the observation setup file. You just need to run the file "run.py" in the "OMASS4" directory, and the optimization will start. At the end, the optimum mode found by the code will be printed on the screen, and a json file with the resulting information will be created in the example directory.
+
 ## Authors and Contact
 
 * **Denis Bernardes**: 
