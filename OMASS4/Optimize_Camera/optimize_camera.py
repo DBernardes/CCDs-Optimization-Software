@@ -16,22 +16,17 @@ from Opt_SNR_AR import Opt_SNR_AR
 
 
 class Optimize_Camera:
-    """Optimize Camera Class
+    """Optimize Camera Class.
 
     Parameters
     ----------
 
+    input_file_path: str, optional
+        The path of the json file with the observation setup.
+
     Yields
     ------
-
-    Notes
-    -----
-
-    Examples
-    --------
-
-    References
-    ----------
+        A json file with the optimal operation mode of the CCD.
 
 
     """
@@ -310,9 +305,9 @@ class Optimize_Camera:
 
             if operation_modes == []:
                 self.file_parameters["acq_rate"] *= 0.8
-                print("\nThere is no mode that meet the provided requirements.")
+                print("\nNo operation mode meets the provided requirements.")
                 print(
-                    f"The optimization will be repeated with 80 % of the acquisition rate: {self.file_parameters['acq_rate']} fps."
+                    f"The optimization will be repeated with 80 % of the acquisition rate: {self.file_parameters['acq_rate']:.2f} fps."
                 )
                 repeat = True
             else:
@@ -357,9 +352,9 @@ class Optimize_Camera:
             if operation_modes == []:
                 self.file_parameters["snr"] *= 0.9
                 self.file_parameters["acq_rate"] *= 0.9
-                print("\nThere is no mode that meet the provided requirements.")
+                print("\nNo operation mode meets the provided requirements.")
                 print(
-                    f"The optimization will be repeated with 90 % of the acquisition rate ({self.file_parameters['acq_rate']} fps) and the SNR ({self.file_parameters['snr']}).\n "
+                    f"The optimization will be repeated with 90 % of the acquisition rate ({self.file_parameters['acq_rate']:.2f} fps) and the SNR ({self.file_parameters['snr']:.2f}).\n "
                 )
                 repeat = True
             else:
