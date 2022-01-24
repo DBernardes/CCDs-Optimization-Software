@@ -1,6 +1,6 @@
 {
-    "snr": 100,
-    "acq_rate": 7,
+    "snr": 1000,
+    "acq_rate": 2,
     "mag": 12,
     "t_exp": [
         1e-05,
@@ -30,7 +30,7 @@
     ],
     "temperature": -70,
     "serial_number": 9917,
-    "use_pre_img": true,
+    "use_pre_img": false,
     "pre_img_name": "CONV_1MHz_PA1_B1_TEXP20_G1.fits",
     "star_coords": [
         100,
@@ -44,5 +44,5 @@
     "exp_name": "",
     "iterations_number": 10,
     "optimization_algorithm": "TPE",
-    "optimization_parameter": "BOTH"
+    "optimization_parameter": "ACQ_RATE"
 }
