@@ -2,6 +2,7 @@
 # coding: utf-8
 # 25/10/2019. Denis Varise Bernardes.
 
+"""Script to run the optimization method."""
 
 from Optimize_Camera import Optimize_Camera
 

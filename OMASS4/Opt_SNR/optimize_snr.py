@@ -169,11 +169,10 @@ class Optimize_SNR:
     def calc_min_snr(self):
         min_snr = 1e5
         best_mode = {}
-
         for mode in self.operation_modes:
             new_mode = copy(mode)
-            new_mode["t_exp"] = min(new_mode["t_exp"])
-            new_mode["em_gain"] = min(new_mode["em_gain"])
+            new_mode["t_exp"] = max(new_mode["t_exp"])
+            new_mode["em_gain"] = max(new_mode["em_gain"])
             snr_calc = SNR_Calculation(
                 new_mode,
                 self.temperature,

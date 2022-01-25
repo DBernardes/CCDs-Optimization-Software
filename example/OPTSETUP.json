@@ -2,15 +2,14 @@
     "FA": 0.8192000000000003,
     "bin": 1,
     "em_gain": [
-        2,
-        300
+        1
     ],
-    "em_mode": "EM",
-    "max_acq_rate": 1.006,
+    "em_mode": "Conv",
+    "max_acq_rate": 0.8831376611648489,
     "obj_coords": "(0,0)",
-    "preamp": 1,
+    "preamp": 2,
     "readout_rate": 1,
     "star_radius": 0,
     "sub_img": 1024,
-    "t_exp": 1e-05
+    "t_exp": 1.0622224573289336
 }

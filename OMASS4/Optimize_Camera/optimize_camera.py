@@ -290,8 +290,6 @@ class Optimize_Camera:
 
     def _optimize_ar(self):
         repeat = True
-        fa_target = self.file_parameters["acq_rate"]
-
         while repeat == True:
 
             opt_ar = Optimize_Acquisition_Rate(
@@ -311,7 +309,9 @@ class Optimize_Camera:
                 repeat = True
             else:
                 repeat = False
+                self.operation_modes = operation_modes
 
+        repeat = True
         while repeat == True:
             operation_modes = [copy(mode) for mode in self.operation_modes]
             opt_snr = Optimize_SNR(
@@ -326,9 +326,9 @@ class Optimize_Camera:
 
             opt_snr.write_operation_modes(operation_modes)
             opt_snr.select_operation_modes_minimun_snr()
-            new_operation_modes = opt_snr.read_operation_modes()
+            operation_modes = opt_snr.read_operation_modes()
 
-            if new_operation_modes == []:
+            if operation_modes == []:
                 self.file_parameters["snr"] *= 0.8
                 print("\nNo operation mode meets the provided requirements.")
                 print(
@@ -337,8 +337,9 @@ class Optimize_Camera:
                 repeat = True
             else:
                 repeat = False
+                self.operation_modes = operation_modes
 
-        opt_ar.write_operation_modes(operation_modes)
+        opt_ar.write_operation_modes(self.operation_modes)
         best_mode = opt_ar.determine_fastest_operation_mode()
         opt_ar.print_best_mode()
         if self.file_parameters["export_setup_file"]:
@@ -361,6 +362,19 @@ class Optimize_Camera:
             opt_ar.select_operation_modes()
             operation_modes = opt_ar.read_operation_modes()
 
+            if operation_modes == []:
+                self.file_parameters["acq_rate"] *= 0.9
+                print("\nNo operation mode meets the provided requirements.")
+                print(
+                    f"The optimization will be repeated with 90 % of the acquisition rate: {self.file_parameters['acq_rate']:.2f} fps.\n "
+                )
+                repeat = True
+            else:
+                repeat = False
+                self.operation_modes = operation_modes
+
+        repeat = True
+        while repeat == True:
             opt_snr = Optimize_SNR(
                 serial_number=self.file_parameters["serial_number"],
                 snr_target=self.file_parameters["snr"],
@@ -370,20 +384,21 @@ class Optimize_Camera:
                 star_flux=self.star_flux,
                 bias_level=self._BIAS_LEVEL,
             )
+            operation_modes = [copy(mode) for mode in self.operation_modes]
             opt_snr.write_operation_modes(operation_modes)
             opt_snr.select_operation_modes_minimun_snr()
             operation_modes = opt_snr.read_operation_modes()
 
             if operation_modes == []:
                 self.file_parameters["snr"] *= 0.9
-                self.file_parameters["acq_rate"] *= 0.9
                 print("\nNo operation mode meets the provided requirements.")
                 print(
-                    f"The optimization will be repeated with 90 % of the acquisition rate ({self.file_parameters['acq_rate']:.2f} fps) and the SNR ({self.file_parameters['snr']:.2f}).\n "
+                    f"The optimization will be repeated with 90 % of the SNR {self.file_parameters['snr']:.2f}.\n "
                 )
                 repeat = True
             else:
                 repeat = False
+                self.operation_modes = operation_modes
         # -------------------------------------------------------------------------
 
         opt_snr_ar = Opt_SNR_AR(
@@ -397,7 +412,7 @@ class Optimize_Camera:
             bias_level=self._BIAS_LEVEL,
         )
 
-        opt_snr_ar.write_operation_modes(operation_modes)
+        opt_snr_ar.write_operation_modes(self.operation_modes)
         opt_snr_ar.SNR_FA_ranges()
         opt_snr_ar.create_space()
         opt_snr_ar.run_bayesian_opt(

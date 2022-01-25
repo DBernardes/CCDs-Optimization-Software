@@ -268,7 +268,6 @@ class Opt_SNR_AR:
     def create_space(self):
         i = 0
         self.new_list = []
-        space_all_modes = []
         for mode in self.operation_modes:
             new_mode = copy(mode)
             max_em_gain = max(mode["em_gain"])
